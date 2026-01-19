@@ -1,0 +1,17 @@
+# Godot 4+ specific ignores
+.godot/
+*.translation
+export_presets.cfg
+
+# Imported assets (automatic)
+*.import
+
+# Mono/C# builds
+.mono/
+.vscode/
+*.sln
+*.csproj
+
+# OS specific
+.DS_Store
+Thumbs.db
