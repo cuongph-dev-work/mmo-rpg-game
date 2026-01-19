@@ -5,14 +5,14 @@ Godot 4.5 Game Server cho MMO RPG với hệ thống Multi-Channel, Mob AI và C
 ## 🎯 Kiến trúc Hệ thống
 
 **Server Architecture:**
-- **MapServer (Godot)**: Core game server với ENet multiplayer
-- **Component System**: StatsComponent, MobAIComponent
-- **Channel Isolation**: Hoàn toàn cô lập giữa các channels
-- **Entity Management**: Players, Mobs với MultiplayerSynchronizer
+- **GameServer (Godot)**: Central Orchestrator
+- **Core Systems**: NetworkManager, EntityManager
+- **Game Modules**: ChannelManager, MobSpawnerSystem, ReplicationSystem
+- **Game Logic**: CombatSystem (Server Authoritative), LootSystem
 
 **Network Flow:**
 ```
-Client (ENet) → MapServer → Channel Assignment → Entity Sync
+Client (ENet) → NetworkManager → GameServer → ChannelManager → Entity Sync
 ```
 
 ## 📁 Cấu trúc thư mục
@@ -20,35 +20,38 @@ Client (ENet) → MapServer → Channel Assignment → Entity Sync
 ```
 server/
 ├── game/                        # Core game logic
+│   ├── core/                    # Core Infrastructure
+│   │   ├── game_server.gd       # Main Orchestrator
+│   │   ├── network_manager.gd   # ENet handling
+│   │   └── entity_manager.gd    # Node management
+│   │
+│   ├── managers/                # High-level State Managers
+│   │   ├── channel_manager.gd   # Visibility & Channel Logic
+│   │   └── player_manager.gd    # Player Data tracking
+│   │
+│   ├── systems/                 # Game Systems (Logic)
+│   │   ├── mob_spawner_system.gd# Spawning Logic
+│   │   ├── combat_system.gd     # Damage & Attack Logic
+│   │   ├── loot_system.gd       # Item Drop Logic
+│   │   └── replication_system.gd# Network Snapshot Rate
+│   │
+│   ├── models/                  # Data Structures
+│   │   ├── map.gd               # Map Data Model
+│   │   └── channel.gd           # Channel Data Model
+│   │
+│   ├── entity/                  # Game Entities
+│   │   ├── player_entity.gd     # CharacterBody2D Player
+│   │   └── mob_entity.gd        # CharacterBody2D Mob
+│   │
 │   ├── components/              # Entity components
-│   │   ├── stats_component.gd   # HP, Defense, Damage system
-│   │   └── mob_ai_component.gd  # AI FSM, Aggro, Pathfinding
+│   │   ├── stats_component.gd   # HP, Stats
+│   │   └── mob_ai_component.gd  # AI Behavior
 │   │
-│   ├── data/                    # Game data loaders
-│   │   ├── map_data.gd          # Map definitions
-│   │   └── mob_data.gd          # Mob templates
-│   │
-│   ├── game_server.gd            # Main server controller
-│   ├── map.gd                   # Map + Channel management
-│   ├── channel.gd               # Channel isolation logic
-│   ├── player_manager.gd        # Player tracking
-│   ├── player_entity.gd         # Player entity (CharacterBody2D)
-│   └── mob_entity.gd            # Mob entity (CharacterBody2D)
+│   └── data/                    # JSON Loaders
 │
 ├── scenes/                      # Godot scenes
-│   ├── player/Player.tscn       # Player scene template
-│   ├── mob/Mob.tscn             # Mob scene template
-│   └── world/World.tscn         # World container scene
-│
-├── data/                        # JSON game data
-│   ├── maps/
-│   │   ├── map_1.json           # Forest map config
-│   │   └── map_2.json           # Dragon's Lair config
-│   └── mob_templates.json       # Mob definitions & AI configs
-│
+├── data/                        # JSON Configs
 ├── main.gd                      # Entry point
-├── main.tscn                    # Main scene
-├── project.godot                # Godot project config
 └── start_server.sh              # Launch script
 ```
 
@@ -326,10 +329,10 @@ Chỉnh sửa `max_channels` trong file JSON và restart server.
 - ✅ Performance optimizations (channel sleep, visibility filtering)
 - ✅ Player input buffering
 - ✅ MultiplayerSynchronizer integration
+- ✅ Combat system (Server Authoritative)
+- ✅ Loot drops (Basic implementation)
 
 ### 🚧 In Progress
-- [ ] Combat system (player attack mobs)
-- [ ] Loot drops
 - [ ] Experience & leveling
 
 ### 📋 Planned Features
