@@ -62,6 +62,138 @@ func _async_setup():
 	if network_manager.start_server() == OK:
 		_print_server_info()
 		mob_spawner.spawn_initial_mobs()
+		
+		# 6. Register with World Directory
+		_setup_registration()
+
+# ============================================================
+# REGISTRATION & HEARTBEAT
+# ============================================================
+
+var registration_request: HTTPRequest
+var heartbeat_request: HTTPRequest
+var heartbeat_timer: Timer
+var is_registered: bool = false
+var registration_retry_count: int = 0
+const MAX_REGISTRATION_RETRIES = 10
+
+# Configuration - can be overridden by environment or args
+var world_directory_url: String = "http://localhost:3001"
+var heartbeat_interval: float = 15.0
+
+func _setup_registration():
+	# Load config from environment if available
+	var env_url = OS.get_environment("WORLD_DIRECTORY_URL")
+	if not env_url.is_empty():
+		world_directory_url = env_url
+	
+	# Setup dedicated HTTP requests
+	registration_request = HTTPRequest.new()
+	add_child(registration_request)
+	registration_request.request_completed.connect(_on_registration_completed)
+	
+	heartbeat_request = HTTPRequest.new()
+	add_child(heartbeat_request)
+	heartbeat_request.request_completed.connect(_on_heartbeat_completed)
+	
+	heartbeat_timer = Timer.new()
+	heartbeat_timer.wait_time = heartbeat_interval
+	heartbeat_timer.timeout.connect(_send_heartbeat)
+	add_child(heartbeat_timer)
+	
+	_register_with_directory()
+
+func _register_with_directory():
+	if registration_retry_count >= MAX_REGISTRATION_RETRIES:
+		push_error("❌ Max registration retries exceeded. Server will run unregistered.")
+		return
+	
+	print("🌐 Registering with World Directory (attempt %d/%d)..." % [registration_retry_count + 1, MAX_REGISTRATION_RETRIES])
+	var url = world_directory_url + "/map-registry/register"
+	var headers = ["Content-Type: application/json"]
+	
+	# Get server IP from environment or use default
+	var server_ip = OS.get_environment("SERVER_IP")
+	if server_ip.is_empty():
+		server_ip = "127.0.0.1"
+	
+	var body = JSON.stringify({
+		"id": "map-server-%d" % map_id,
+		"name": "Map Server %d" % map_id,
+		"ip": server_ip,
+		"port": network_manager.port,
+		"supported_maps": [map_id],
+		"max_players": network_manager.max_players
+	})
+	
+	var error = registration_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		push_error("❌ Failed to send registration request: %s" % error)
+		registration_retry_count += 1
+		_schedule_registration_retry()
+
+func _on_registration_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray):
+	if response_code == 201:
+		print("✅ Registered with World Directory successfully!")
+		is_registered = true
+		registration_retry_count = 0 # Reset counter on success
+		heartbeat_timer.start()
+	elif response_code == 0:
+		# Network error - connection failed
+		push_error("❌ Registration failed: Could not connect to World Directory")
+		registration_retry_count += 1
+		_schedule_registration_retry()
+	else:
+		# HTTP error
+		var error_msg = body.get_string_from_utf8() if body.size() > 0 else "Unknown error"
+		push_error("❌ Registration failed with code %d: %s" % [response_code, error_msg])
+		registration_retry_count += 1
+		_schedule_registration_retry()
+
+func _schedule_registration_retry():
+	if registration_retry_count >= MAX_REGISTRATION_RETRIES:
+		push_error("❌ Max registration retries exceeded. Giving up.")
+		return
+	
+	var retry_delay = min(5.0 * registration_retry_count, 30.0) # Exponential backoff, max 30s
+	print("⏳ Retrying registration in %.1f seconds..." % retry_delay)
+	await get_tree().create_timer(retry_delay).timeout
+	_register_with_directory()
+
+func _send_heartbeat():
+	if not is_registered:
+		return
+	
+	# Check if heartbeat request is already in progress
+	if heartbeat_request.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		print("⚠️ Skipping heartbeat - previous request still in progress")
+		return
+		
+	var url = world_directory_url + "/map-registry/heartbeat"
+	var headers = ["Content-Type: application/json"]
+	
+	# Note: HeartbeatDto expects 'current_players' or 'load', not 'status'
+	var body = JSON.stringify({
+		"id": "map-server-%d" % map_id,
+		"current_players": map_instance.get_total_player_count(),
+		"load": map_instance.get_total_player_count()
+	})
+	
+	var error = heartbeat_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		push_error("❌ Failed to send heartbeat: %s" % error)
+
+func _on_heartbeat_completed(_result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray):
+	if response_code == 200:
+		# Heartbeat successful - no need to log every time
+		pass
+	elif response_code == 404:
+		# Server not found - might have been unregistered
+		push_error("❌ Heartbeat failed: Server not found. Re-registering...")
+		is_registered = false
+		_register_with_directory()
+	elif response_code != 0:
+		print("⚠️ Heartbeat returned unexpected code: %d" % response_code)
 
 # ============================================================
 # CORE SETUP

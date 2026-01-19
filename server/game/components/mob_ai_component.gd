@@ -41,7 +41,6 @@ func initialize(config: Dictionary, _spawn_pos: Vector2, _move_speed: float):
 
 func on_damaged(amount: int, attacker: Node):
 	if behavior == "passive":
-		# TODO: Flee behavior?
 		return
 		
 	if (behavior == "neutral" or behavior == "hostile") and is_instance_valid(attacker) and attacker is Node2D:

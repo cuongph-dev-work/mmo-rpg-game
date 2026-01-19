@@ -11,11 +11,13 @@ import { Server, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { Logger } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { AuthApiService } from '../auth/auth-api.service';
 import { WorldClientService } from '../world-client/world-client.service';
 import { ConfigService } from '@nestjs/config';
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: string;
+  characterId?: string;
 }
 
 @WebSocketGateway({ path: '/ws' })
@@ -27,6 +29,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly authApiService: AuthApiService,
     private readonly worldClientService: WorldClientService,
     private readonly configService: ConfigService,
   ) {}
@@ -64,6 +67,74 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (client.userId) {
       await this.worldClientService.removeSession(client.userId);
       this.logger.log(`User ${client.userId} disconnected`);
+    }
+  }
+
+  @SubscribeMessage('enter_world')
+  async handleEnterWorld(
+    @MessageBody() data: { character_id: string },
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    if (!client.userId) {
+      this.logger.warn('enter_world attempt without userId');
+      return;
+    }
+
+    const characterId = data.character_id;
+    this.logger.log(`User ${client.userId} requesting to enter world with character ${characterId}`);
+
+    try {
+      // Verify character ownership
+      const isOwner = await this.authApiService.verifyCharacterOwnership(characterId, client.userId);
+      
+      if (!isOwner) {
+        this.logger.warn(`User ${client.userId} does not own character ${characterId}`);
+        client.send(JSON.stringify({
+          event: 'error',
+          data: { code: 'FORBIDDEN', message: 'You do not own this character' }
+        }));
+        return;
+      }
+
+      // Fetch character data
+      const character = await this.authApiService.getCharacterById(characterId);
+      
+      // Store character in socket
+      client.characterId = characterId;
+
+      // Request map allocation from world directory
+      const mapServer = await this.worldClientService.getMapServer(character.map_id);
+
+      if (!mapServer) {
+        client.send(JSON.stringify({
+          event: 'error',
+          data: { code: 'MAP_NOT_FOUND', message: `Map ${character.map_id} not available` }
+        }));
+        return;
+      }
+
+      // For now, return mock data. In Phase 5, this will include real ticket from world-directory
+      const response = {
+        event: 'enter_world_success',
+        data: {
+          character_id: characterId,
+          map_id: character.map_id,
+          map_ip: mapServer.ip,
+          map_port: mapServer.port,
+          ticket: 'mock-ticket-' + characterId, // TODO: Generate real HMAC ticket
+          spawn_pos: character.position
+        }
+      };
+
+      this.logger.log(`Sending enter_world_success for character ${characterId}`);
+      client.send(JSON.stringify(response));
+
+    } catch (error) {
+      this.logger.error(`enter_world failed: ${error.message}`);
+      client.send(JSON.stringify({
+        event: 'error',
+        data: { code: 'INTERNAL_ERROR', message: 'Failed to process enter_world request' }
+      }));
     }
   }
 

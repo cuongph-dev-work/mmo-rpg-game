@@ -4,8 +4,8 @@ extends Node
 ## Provides centralized access to game configuration values
 
 # Network settings
-var auth_service_url: String = "http://localhost:3001"
-var gateway_url: String = "ws://localhost:3000/ws"
+var auth_service_url: String = "http://localhost:3000"
+var gateway_url: String = "ws://localhost:3002/ws"
 var reconnect_delay: float = 3.0
 var network_logging_enabled: bool = true
 

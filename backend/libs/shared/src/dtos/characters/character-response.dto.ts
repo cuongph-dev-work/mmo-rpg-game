@@ -4,6 +4,7 @@ export class CharacterResponseDto {
   name: string;
   level: number;
   class_id: string;
+  class_name: string;
   appearance: Record<string, any>;
   map_id: number;
   position: { x: number; y: number };

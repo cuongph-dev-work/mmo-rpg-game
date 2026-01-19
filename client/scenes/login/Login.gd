@@ -18,6 +18,10 @@ func _ready():
 	print("[Login] Login scene ready")
 	status_label.text = ""
 	
+	# Set default test credentials for easier testing
+	username_input.text = "testuser"
+	password_input.text = "test123"
+	
 	# Focus on username input
 	username_input.grab_focus()
 
@@ -68,7 +72,7 @@ func _send_auth_request(endpoint: String, username: String, password: String):
 		_show_error("Failed to send request: %s" % error)
 		_set_ui_enabled(true)
 
-func _on_http_request_completed(result, response_code, headers, body):
+func _on_http_request_completed(result, response_code, _headers, body):
 	print("[Login] Request completed - Code: %d" % response_code)
 	
 	_set_ui_enabled(true)
@@ -100,7 +104,7 @@ func _on_auth_success(data: Dictionary):
 		return
 	
 	# Store authentication
-	GameState.set_auth(access_token, user_id)
+	AuthState.set_auth(access_token, user_id)
 	
 	if current_request_type == RequestType.REGISTER:
 		_show_status("Account created! Redirecting...", Color.GREEN)

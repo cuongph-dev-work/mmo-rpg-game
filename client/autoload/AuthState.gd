@@ -1,6 +1,6 @@
 extends Node
 
-## GameState - Authentication & Character State Management
+## AuthState - Authentication & Character State Management
 ## Stores user authentication and current character information
 
 # Authentication state
@@ -12,7 +12,7 @@ var current_character_id: String = ""
 var current_character_data: Dictionary = {}
 
 func _ready():
-	print("[GameState] Game state manager initialized")
+	print("[AuthState] Authentication state manager initialized")
 
 ## Authentication Methods
 
@@ -20,7 +20,7 @@ func set_auth(token: String, user: String) -> void:
 	"""Store authentication credentials"""
 	access_token = token
 	user_id = user
-	print("[GameState] ✅ Authentication set for user: %s" % user_id)
+	print("[AuthState] ✅ Authentication set for user: %s" % user_id)
 
 func clear_auth() -> void:
 	"""Clear all authentication and character data"""
@@ -28,7 +28,7 @@ func clear_auth() -> void:
 	user_id = ""
 	current_character_id = ""
 	current_character_data = {}
-	print("[GameState] 🔓 Authentication cleared")
+	print("[AuthState] 🔓 Authentication cleared")
 
 func is_authenticated() -> bool:
 	"""Check if user is authenticated"""
@@ -44,13 +44,13 @@ func set_character(character_id: String, character_data: Dictionary) -> void:
 	"""Store current character information"""
 	current_character_id = character_id
 	current_character_data = character_data
-	print("[GameState] 👤 Character set: %s (ID: %s)" % [character_data.get("name", "Unknown"), character_id])
+	print("[AuthState] 👤 Character set: %s (ID: %s)" % [character_data.get("name", "Unknown"), character_id])
 
 func clear_character() -> void:
 	"""Clear current character selection"""
 	current_character_id = ""
 	current_character_data = {}
-	print("[GameState] Character cleared")
+	print("[AuthState] Character cleared")
 
 func has_character() -> bool:
 	"""Check if a character is selected"""

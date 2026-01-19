@@ -9,6 +9,7 @@ export class CharactersService {
   async findAllByUser(userId: string): Promise<CharacterResponseDto[]> {
     const characters = await this.prisma.character.findMany({
       where: { user_id: userId },
+      include: { class: true },
       orderBy: { created_at: 'desc' },
     });
 
@@ -46,6 +47,7 @@ export class CharactersService {
         position: GAME_CONSTANTS.DEFAULT_POSITION,
         stats: GAME_CONSTANTS.DEFAULT_STATS,
       },
+      include: { class: true },
     });
 
     return this.toResponseDto(character);
@@ -83,6 +85,7 @@ export class CharactersService {
         ...(dto.name && { name: dto.name }),
         ...(dto.appearance && { appearance: dto.appearance }),
       },
+      include: { class: true },
     });
 
     return this.toResponseDto(updated);
@@ -108,10 +111,24 @@ export class CharactersService {
     });
   }
 
+  async findById(id: string): Promise<CharacterResponseDto> {
+    const character = await this.prisma.character.findUnique({
+      where: { id },
+      include: { class: true },
+    });
+
+    if (!character) {
+      throw new NotFoundException('Character not found');
+    }
+
+    return this.toResponseDto(character);
+  }
+
   async select(id: string, userId: string): Promise<SelectCharacterResponseDto> {
     // Check ownership
     const character = await this.prisma.character.findUnique({
       where: { id },
+      include: { class: true },
     });
 
     if (!character) {
@@ -148,6 +165,7 @@ export class CharactersService {
       name: character.name,
       level: character.level,
       class_id: character.class_id,
+      class_name: character.class ? character.class.name : 'Unknown',
       appearance: character.appearance as Record<string, any>,
       map_id: character.map_id,
       position: character.position as { x: number; y: number },

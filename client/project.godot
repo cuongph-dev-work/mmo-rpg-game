@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="MMO RPG Client"
-run/main_scene="res://scenes/bootstrap/Bootstrap.tscn"
+run/main_scene="res://scenes/login/Login.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -21,13 +21,14 @@ Config="*res://autoload/Config.gd"
 Bus="*res://autoload/Bus.gd"
 Net="*res://autoload/Net.gd"
 App="*res://autoload/App.gd"
-GameState="*res://autoload/GameState.gd"
+AuthState="*res://autoload/AuthState.gd"
 GatewayClient="*res://autoload/GatewayClient.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/stretch/mode="viewport"
 
 [input]
 

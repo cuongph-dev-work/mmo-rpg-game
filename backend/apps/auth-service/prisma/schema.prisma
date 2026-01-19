@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -34,7 +35,32 @@ model Character {
   created_at DateTime @default(now())
   
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  class      CharacterClass @relation(fields: [class_id], references: [id])
 
   @@index([user_id])
   @@map("characters")
+}
+
+model CharacterClass {
+  id         String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  
+  // Base Stats (Level 1)
+  base_hp     Int
+  base_mp     Int
+  base_str    Int
+  base_agi    Int
+  base_int    Int
+  
+  // Stat Growth per Level
+  hp_growth   Float    @default(0)
+  mp_growth   Float    @default(0)
+  str_growth  Float    @default(0)
+  agi_growth  Float    @default(0)
+  int_growth  Float    @default(0)
+
+  characters  Character[]
+
+  @@map("character_classes")
 }

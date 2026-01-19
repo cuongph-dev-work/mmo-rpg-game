@@ -6,12 +6,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('characters')
 @Controller('characters')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class CharactersController {
   constructor(private charactersService: CharactersService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all characters for current user' })
   @ApiResponse({ status: 200, description: 'Returns user characters' })
   async getCharacters(@Request() req) {
@@ -19,6 +19,8 @@ export class CharactersController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new character' })
   @ApiResponse({ status: 201, description: 'Character created successfully' })
   @ApiResponse({ status: 400, description: 'Max characters reached' })
@@ -28,6 +30,8 @@ export class CharactersController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update character' })
   @ApiResponse({ status: 200, description: 'Character updated successfully' })
   @ApiResponse({ status: 403, description: 'You do not own this character' })
@@ -37,6 +41,8 @@ export class CharactersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete character' })
   @ApiResponse({ status: 204, description: 'Character deleted successfully' })
@@ -47,11 +53,21 @@ export class CharactersController {
   }
 
   @Post(':id/select')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Select character to enter game world' })
   @ApiResponse({ status: 200, description: 'Character selected, returns connection info' })
   @ApiResponse({ status: 403, description: 'You do not own this character' })
   @ApiResponse({ status: 404, description: 'Character not found' })
   async selectCharacter(@Request() req, @Param('id') id: string) {
     return this.charactersService.select(id, req.user.userId);
+  }
+
+  @Get(':id/internal')
+  @ApiOperation({ summary: 'Internal endpoint to fetch character by ID (for gateway-service)' })
+  @ApiResponse({ status: 200, description: 'Returns character data' })
+  @ApiResponse({ status: 404, description: 'Character not found' })
+  async getCharacterInternal(@Param('id') id: string) {
+    return this.charactersService.findById(id);
   }
 }
