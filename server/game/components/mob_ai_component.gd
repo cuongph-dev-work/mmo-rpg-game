@@ -16,12 +16,20 @@ var behavior: String = "hostile" # passive, neutral, hostile
 
 
 # State
-enum State {IDLE, PATROL, CHASE, RETURN}
+enum State {IDLE, PATROL, CHASE, FLEE, RETURN}
 var current_state: State = State.IDLE
 var spawn_pos: Vector2 = Vector2.ZERO
 var target: Node2D = null
 var idle_timer: float = 0.0
 var patrol_target: Vector2 = Vector2.ZERO
+
+# Flee state
+var flee_target: Vector2 = Vector2.ZERO
+var flee_duration: float = 0.0
+var flee_timer: float = 0.0
+var last_attacker: Node2D = null
+var flee_safe_distance: float = 350.0
+var flee_speed_multiplier: float = 1.3
 
 var hate_table: Dictionary = {} # { Node2D: float (threat) }
 
@@ -36,11 +44,21 @@ func initialize(config: Dictionary, _spawn_pos: Vector2, _move_speed: float):
 	patrol_radius = ai_config.get("patrolRadius", 100.0)
 	patrol_speed = ai_config.get("patrolSpeed", 50.0)
 	behavior = ai_config.get("behavior", "hostile")
+	flee_safe_distance = ai_config.get("fleeSafeDistance", 350.0)
+	flee_speed_multiplier = ai_config.get("fleeSpeedMultiplier", 1.3)
 	
 	print("🧠 AI Init: Aggro %.0f Chase %.0f Behavior: %s" % [aggro_range, chase_range, behavior])
 
 func on_damaged(amount: int, attacker: Node):
 	if behavior == "passive":
+		# Passive mobs flee when damaged
+		if is_instance_valid(attacker) and attacker is Node2D:
+			last_attacker = attacker
+			flee_duration = randf_range(5.0, 10.0)
+			flee_timer = 0.0
+			current_state = State.FLEE
+			_calculate_flee_target()
+			print("😱 Mob fleeing from %s for %.1fs" % [attacker.name, flee_duration])
 		return
 		
 	if (behavior == "neutral" or behavior == "hostile") and is_instance_valid(attacker) and attacker is Node2D:
@@ -99,6 +117,8 @@ func physics_process(delta: float) -> Vector2:
 			return _process_patrol(delta)
 		State.CHASE:
 			return _process_chase(delta)
+		State.FLEE:
+			return _process_flee(delta)
 		State.RETURN:
 			return _process_return(delta)
 	return Vector2.ZERO
@@ -148,6 +168,52 @@ func _process_return(_delta) -> Vector2:
 		return Vector2.ZERO
 		
 	return mob.position.direction_to(spawn_pos) * chase_speed
+
+func _process_flee(delta: float) -> Vector2:
+	flee_timer += delta
+	
+	# Check if flee duration expired
+	if flee_timer >= flee_duration:
+		print("😌 Mob flee timeout, returning to spawn")
+		current_state = State.RETURN
+		last_attacker = null
+		return Vector2.ZERO
+	
+	# Check if reached flee target
+	if mob.position.distance_to(flee_target) < 20.0:
+		# Find new flee target away from attacker
+		_calculate_flee_target()
+	
+	# Check if far enough from attacker
+	if is_instance_valid(last_attacker):
+		var distance_to_attacker = mob.position.distance_to(last_attacker.position)
+		if distance_to_attacker > flee_safe_distance:
+			print("✅ Mob reached safe distance, returning to spawn")
+			current_state = State.RETURN
+			last_attacker = null
+			return Vector2.ZERO
+	
+	return mob.position.direction_to(flee_target) * chase_speed * flee_speed_multiplier
+
+func _calculate_flee_target():
+	if not is_instance_valid(last_attacker):
+		# No attacker, just flee towards spawn
+		flee_target = spawn_pos
+		return
+	
+	# Calculate direction away from attacker
+	var away_direction = (mob.position - last_attacker.position).normalized()
+	
+	# Try to flee towards spawn if it's in the general "away" direction
+	var to_spawn = (spawn_pos - mob.position).normalized()
+	var dot_product = away_direction.dot(to_spawn)
+	
+	if dot_product > 0.3: # Spawn is somewhat away from attacker
+		flee_target = spawn_pos
+	else:
+		# Flee in opposite direction, but stay within leash range
+		var flee_distance = min(flee_safe_distance, leash_range * 0.8)
+		flee_target = mob.position + away_direction * flee_distance
 
 func _check_for_aggro():
 	# Passive and Neutral mobs DO NOT aggro on sight

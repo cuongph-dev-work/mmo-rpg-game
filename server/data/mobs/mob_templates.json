@@ -13,7 +13,9 @@
                 "leashRange": 500.0,
                 "patrolRadius": 100.0,
                 "patrolSpeed": 40.0,
-                "behavior": "neutral"
+                "behavior": "neutral",
+                "fleeSafeDistance": 350.0,
+                "fleeSpeedMultiplier": 1.3
             }
         },
         "wolf": {
