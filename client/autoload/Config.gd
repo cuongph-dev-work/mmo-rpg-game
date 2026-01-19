@@ -4,7 +4,8 @@ extends Node
 ## Provides centralized access to game configuration values
 
 # Network settings
-var gateway_url: String = "ws://localhost:3000"
+var auth_service_url: String = "http://localhost:3001"
+var gateway_url: String = "ws://localhost:3000/ws"
 var reconnect_delay: float = 3.0
 var network_logging_enabled: bool = true
 
@@ -16,6 +17,9 @@ var interpolation_rate: float = 0.1
 
 func _ready():
 	print("[Config] Configuration initialized")
+
+func get_auth_service_url() -> String:
+	return auth_service_url
 
 func get_gateway_url() -> String:
 	return gateway_url

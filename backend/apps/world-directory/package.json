@@ -1,0 +1,29 @@
+{
+    "name": "@mmo-rpg/world-directory",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "nest build",
+        "start": "nest start",
+        "start:dev": "nest start --watch",
+        "start:debug": "nest start --debug --watch",
+        "start:prod": "node dist/main"
+    },
+    "dependencies": {
+        "@nestjs/common": "*",
+        "@nestjs/core": "*",
+        "@nestjs/platform-express": "*",
+        "@nestjs/swagger": "*",
+        "@nestjs/config": "*",
+        "ioredis": "*",
+        "class-validator": "*",
+        "class-transformer": "*",
+        "reflect-metadata": "*",
+        "rxjs": "*",
+        "@mmo-rpg/shared": "*"
+    },
+    "devDependencies": {
+        "@nestjs/cli": "*",
+        "@types/node": "*",
+        "typescript": "*"
+    }
+}

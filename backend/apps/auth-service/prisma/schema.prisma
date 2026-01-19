@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String      @id @default(uuid())
+  username      String      @unique
+  email         String?     @unique
+  password_hash String
+  created_at    DateTime    @default(now())
+  
+  characters    Character[]
+
+  @@map("users")
+}
+
+model Character {
+  id         String   @id @default(uuid())
+  user_id    String
+  name       String   @unique
+  level      Int      @default(1)
+  class_id   String
+  appearance Json     @default("{}")
+  map_id     Int      @default(1)
+  position   Json     @default("{\"x\": 0, \"y\": 0}")
+  stats      Json     @default("{\"hp\": 100, \"mp\": 50, \"str\": 10, \"agi\": 10, \"int\": 10}")
+  created_at DateTime @default(now())
+  
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("characters")
+}

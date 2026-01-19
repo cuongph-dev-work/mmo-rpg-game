@@ -1,0 +1,44 @@
+{
+  "monorepo": true,
+  "root": "apps/auth-service",
+  "sourceRoot": "apps/auth-service/src",
+  "compilerOptions": {
+    "webpack": true,
+    "tsConfigPath": "apps/auth-service/tsconfig.json"
+  },
+  "projects": {
+    "auth-service": {
+      "type": "application",
+      "root": "apps/auth-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth-service/tsconfig.json",
+        "webpack": true,
+        "webpackConfigPath": "apps/auth-service/webpack.config.js"
+      }
+    },
+    "world-directory": {
+      "type": "application",
+      "root": "apps/world-directory",
+      "entryFile": "main",
+      "sourceRoot": "apps/world-directory/src",
+      "compilerOptions": {
+        "webpack": true,
+        "webpackConfigPath": "apps/world-directory/webpack.config.js",
+        "tsConfigPath": "apps/world-directory/tsconfig.json"
+      }
+    },
+    "gateway-service": {
+      "type": "application",
+      "root": "apps/gateway-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway-service/src",
+      "compilerOptions": {
+        "webpack": true,
+        "webpackConfigPath": "apps/gateway-service/webpack.config.js",
+        "tsConfigPath": "apps/gateway-service/tsconfig.json"
+      }
+    }
+  }
+}

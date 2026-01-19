@@ -1,0 +1,11 @@
+{
+    "name": "@mmo-rpg/shared",
+    "version": "1.0.0",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "type": "commonjs",
+    "dependencies": {
+        "class-validator": "^0.14.1",
+        "class-transformer": "^0.5.1"
+    }
+}

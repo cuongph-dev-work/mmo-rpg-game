@@ -93,6 +93,20 @@ return mob.position.direction_to(target.position) * chase_speed
 return mob.position.direction_to(spawn_pos) * chase_speed
 ```
 
+#### 2.5. FLEE (Chạy trốn)
+**Chức năng:**
+- Di chuyển **ra xa** khỏi attacker
+- Áp dụng cho Passive mobs khi bị tấn công
+
+**Điều kiện dừng (chuyển sang IDLE/RETURN):**
+1. Đủ xa an toàn: `distance > chase_range` -> IDLE
+2. Quá xa spawn point: `distance > leash_range` -> RETURN
+
+**Velocity trả về:**
+```gdscript
+return target.position.direction_to(mob.position) * chase_speed
+```
+
 ### Sơ đồ chuyển trạng thái
 
 ```mermaid
@@ -103,6 +117,12 @@ stateDiagram-v2
     IDLE --> CHASE: Aggro detected (hostile)
     PATROL --> CHASE: Aggro detected (hostile)
     CHASE --> RETURN: Target lost / Out of range / Leashed
+    
+    IDLE --> FLEE: Damaged (Passive)
+    PATROL --> FLEE: Damaged (Passive)
+    FLEE --> IDLE: Safe distance reached
+    FLEE --> RETURN: Leash range exceeded
+
     RETURN --> IDLE: Reached spawn_pos
     
     note right of RETURN: Clears hate_table
@@ -121,9 +141,8 @@ if behavior == "passive":
 
 **Đặc điểm:**
 - Không bao giờ tự động aggro
-- **Không phản ứng khi bị tấn công** (không thêm vào hate_table)
-- Luôn ở trạng thái IDLE/PATROL
-- TODO: Có thể implement flee behavior trong tương lai
+- **Chuyển sang FLEE** khi bị tấn công (thay vì đứng im)
+- Luôn ở trạng thái IDLE/PATROL nếu không bị quấy rầy
 
 ### 3.2. Neutral (Trung lập)
 ```gdscript
@@ -303,6 +322,7 @@ func physics_process(delta: float) -> Vector2:
         State.PATROL: return _process_patrol(delta)
         State.CHASE:  return _process_chase(delta)
         State.RETURN: return _process_return(delta)
+        State.FLEE:   return _process_flee(delta)
     return Vector2.ZERO
 ```
 
@@ -387,20 +407,37 @@ print("🧠 AI Init: Aggro %.0f Chase %.0f Behavior: %s" % [aggro_range, chase_r
 - Hiển thị hate_table values trên màn hình
 - Color coding theo state (IDLE=xanh, PATROL=vàng, CHASE=đỏ, RETURN=xám)
 
-## 11. Roadmap và Cải tiến
+## 12. Hệ thống Respawn (Tái sinh)
 
-### 11.1. TODO hiện tại
+### 12.1. Random Variance (Biến thiên ngẫu nhiên)
+Để tránh hiện tượng "Synchronized Spawning" (quái respawn đồng loạt cùng lúc), hệ thống áp dụng biến thiên ngẫu nhiên cho timer:
+
 ```gdscript
-# Line 44: Flee behavior for passive mobs
-if behavior == "passive":
-    # TODO: Flee behavior?
-    return
+var base_respawn_time = 5.0
+var respawn_time = base_respawn_time * randf_range(0.8, 1.2)
 ```
 
-### 11.2. Đề xuất cải tiến
-- **Flee System:** Passive mobs chạy trốn khi bị tấn công
-- **Group AI:** Mobs gọi hỗ trợ từ mobs gần đó
-- **Patrol Paths:** Tuần tra theo đường định sẵn thay vì ngẫu nhiên
-- **Combat Abilities:** Tích hợp skill system
-- **Formation:** Mobs di chuyển theo đội hình khi chase
-- **Respawn Logic:** Tự động respawn sau khi chết
+**Kết quả:**
+- Thời gian hồi sinh thực tế dao động +/- 20%.
+- Ví dụ: 5s base -> thực tế 4.0s đến 6.0s.
+
+## 13. Roadmap và Cải tiến
+
+### 13.1. Tính năng đã hoàn thành
+- [x] **Flee System:** Passive mobs chạy trốn khi bị tấn công.
+- [x] **Respawn Logic:** Random variance cho respawn timer.
+
+### 13.2. Đề xuất cải tiến (Game Design Roadmap)
+
+#### Priority 1: Gameplay Depth (Chiều sâu Gameplay)
+- **Combat Abilities (Skill System):** Mobs cần có kỹ năng (Stun, AoE, Heal) thay vì chỉ đánh thường. Đây là yếu tố quyết định sự thú vị của combat.
+- **Ranged AI (Kiting Behavior):** Mobs đánh xa (Cung thủ, Pháp sư) biết giữ khoảng cách. Nếu player lại gần -> chạy lùi rồi bắn tiếp (Hit & Run).
+- **Social Aggro (Chain Pulls):** Khi đánh 1 con, các con cùng loại xung quanh tự động lao vào. Tạo cảm giác "One for all, all for one".
+
+#### Priority 2: Replayability (Giá trị chơi lại)
+- **Elite Affixes (Modifier System):** Quái Elite không chỉ trâu hơn, mà có thêm thuộc tính ngẫu nhiên (Ví dụ: *Explosive* - nổ khi chết, *Vampiric* - hút máu, *Swift* - chạy nhanh).
+- **Rare Mobs:** Quái hiếm với loot xịn, spawn ngẫu nhiên thời gian dài.
+
+#### Priority 3: Boss Mechanics
+- **Boss Phases:** AI thay đổi theo % máu (75% -> Enrage, 50% -> Gọi đệ, 25% -> Tuyệt chiêu cuối).
+- **Telegraphing:** Hiển thị vùng nguy hiểm (Red zone) trên mặt đất trước khi tung skill mạnh để player né.

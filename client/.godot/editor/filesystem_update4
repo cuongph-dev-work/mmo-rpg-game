@@ -1,1 +1,2 @@
 res://entities/player/Player.tscn
+res://autoload/Config.gd

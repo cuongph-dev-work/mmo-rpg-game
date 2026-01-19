@@ -160,7 +160,9 @@ func _on_mob_died(mob_node: Node) -> void:
 	# 2. Schedule Respawn if valid group
 	if group_index >= 0 and map_instance.config.mob_spawns.size() > group_index:
 		var spawn_config = map_instance.config.mob_spawns[group_index]
-		var respawn_time = spawn_config.get("respawn_time", 5.0)
+		var base_respawn_time = spawn_config.get("respawn_time", 5.0)
+		# Add 20% variance to avoid synchronous spawns
+		var respawn_time = base_respawn_time * randf_range(0.8, 1.2)
 		
 		# Mob Channel
 		var mob_channel = mob_node.channel_id

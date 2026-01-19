@@ -6,9 +6,9 @@ extends Node
 ## Allows running game logic at 60Hz while networking runs at 20Hz or variable rates.
 
 var entity_manager: EntityManager
-var target_network_rate_hz: int = 20
+var target_network_rate_hz: int = 30
 
-func setup(p_entity_manager: EntityManager, p_rate_hz: int = 20):
+func setup(p_entity_manager: EntityManager, p_rate_hz: int = 30):
 	entity_manager = p_entity_manager
 	target_network_rate_hz = p_rate_hz
 	print("✅ ReplicationSystem initialized at %d Hz" % target_network_rate_hz)

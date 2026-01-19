@@ -21,6 +21,8 @@ Config="*res://autoload/Config.gd"
 Bus="*res://autoload/Bus.gd"
 Net="*res://autoload/Net.gd"
 App="*res://autoload/App.gd"
+GameState="*res://autoload/GameState.gd"
+GatewayClient="*res://autoload/GatewayClient.gd"
 
 [display]
 
