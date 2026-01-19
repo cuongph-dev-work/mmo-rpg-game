@@ -14,6 +14,25 @@ var player_manager: PlayerManager
 signal channel_switch_completed(player_id: int, old_channel: int, new_channel: int)
 signal player_visibility_changed(player_id: int, channel_id: int)
 
+## Handle player disconnect - cleanup logic
+func remove_player_from_channel(player_id: int) -> void:
+	var player_info = player_manager.get_player(player_id)
+	if not player_info: return
+	
+	var channel_id = player_info["data"].get("channel_id", 1)
+	var channel = map_instance.get_channel(channel_id)
+	if not channel: return
+	
+	# Broadcast Despawn to Channel (Optimization: could be moved to separate func if needed, but handled here)
+	var world_node = _get_world_node()
+	if world_node:
+		for other_pid in channel.players.keys():
+			if other_pid != player_id:
+				world_node.rpc_id(other_pid, "despawn_player", player_id)
+	
+	channel.remove_player(player_id)
+	update_channel_processing(channel_id)
+
 func setup(server: Node, map: Map, container: Node, p_manager: PlayerManager) -> void:
 	game_server = server
 	map_instance = map
@@ -183,7 +202,56 @@ func change_player_channel(player_id: int, target_channel_id: int) -> bool:
 	
 	print("   ✅ Sync complete for channel switch")
 	channel_switch_completed.emit(player_id, old_channel_id, target_channel_id)
+	channel_switch_completed.emit(player_id, old_channel_id, target_channel_id)
 	return true
+
+# ============================================================
+# SNAPSHOT & BROADCAST (Moved from GameServer)
+# ============================================================
+
+## Send full channel state (Mobs + Players) to a specific player
+## Used when joining or switching channels
+func send_channel_snapshot(target_pid: int, channel_id: int) -> void:
+	var world_node = _get_world_node()
+	if not world_node: return
+	
+	if not entity_container: return
+
+	# 1. Send Mobs
+	# Filter for enemies in this channel
+	for child in entity_container.get_children():
+		if child.is_in_group("enemies"):
+			var mob_channel = child.get("channel_id") if "channel_id" in child else 0
+			if mob_channel == channel_id:
+				var type_id = child.get("mob_type_id") if "mob_type_id" in child else "slime"
+				var is_elite = child.get("is_elite") if "is_elite" in child else false
+				# RPC: spawn_mob(id, pos, type, is_elite)
+				world_node.rpc_id(target_pid, "spawn_mob", int(str(child.name)), child.position, type_id, is_elite)
+
+	# 2. Send Other Players
+	var channel = map_instance.get_channel(channel_id)
+	if channel:
+		for pid in channel.players.keys():
+			if pid != target_pid:
+				var node = entity_container.get_node_or_null(str(pid))
+				if node:
+					world_node.rpc_id(target_pid, "spawn_player", pid, node.position)
+
+## Notify other players in the channel about a new player entry
+func broadcast_player_entry(player_id: int, channel_id: int) -> void:
+	var world_node = _get_world_node()
+	var p_node = entity_container.get_node_or_null(str(player_id))
+	
+	if not world_node or not p_node: return
+	
+	var channel = map_instance.get_channel(channel_id)
+	if channel:
+		for pid in channel.players.keys():
+			if pid != player_id:
+				# Ensure visibility
+				set_entity_visibility(p_node, pid, true)
+				# Send RPC
+				world_node.rpc_id(pid, "spawn_player", player_id, p_node.position)
 
 # ============================================================
 # HELPERS

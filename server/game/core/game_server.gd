@@ -26,13 +26,21 @@ var mob_scene = preload("res://scenes/mob/Mob.tscn")
 var world_scene = preload("res://scenes/world/World.tscn")
 
 func _ready():
+	# Use async setup to handle deferred initialization of World
+	_async_setup.call_deferred()
+
+func _async_setup():
 	# 1. Parse Args
 	map_id = _get_arg_int("--map-id", 1)
 	var port = _get_arg_int("--port", 3001)
 	
 	# 2. Setup Core Layers
 	_setup_network_manager(port)
-	_setup_world_scene() # Ensure Godot Scene Tree logic
+	_setup_world_scene() # Uses call_deferred inside
+	
+	# Wait for World to be added to Tree due to "Parent busy" lock
+	await get_tree().process_frame
+	
 	_setup_entity_manager()
 	
 	# 3. Setup Game Data
@@ -84,16 +92,12 @@ func _setup_entity_manager():
 	entity_manager = EntityManager.new()
 	add_child(entity_manager)
 	
-	if not entity_manager.entity_container:
-		call_deferred("_late_setup")
-		
-func _late_setup():
+	# Synchronous Setup
 	var root = get_tree().root
 	if root.has_node("World"):
 		entity_manager.setup(root.get_node("World"))
-		channel_manager.entity_container = entity_manager.entity_container
-		mob_spawner.entity_container = entity_manager.entity_container
-		print("✅ World Container linked via Late Setup")
+	else:
+		push_error("❌ World node not found during sync setup! EntityManager disabled.")
 
 # ============================================================
 # SYSTEM SETUP
