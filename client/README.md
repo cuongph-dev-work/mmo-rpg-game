@@ -221,6 +221,11 @@ var server_sync_position: Vector2 = Vector2.ZERO
 # MultiplayerSynchronizer tự động replicate từ server → clients
 ```
 
+**Interpolation Tuning:**
+- Server Tickrate: **30 Hz**.
+- Client Interpolation Factor: `delta * 10` (Tuned for smoothness).
+- Giúp movement mượt mà dù nhận data frequency thấp hơn render frequency (60Hz+).
+
 ---
 
 ## 🎯 Client-Side Prediction & Server Reconciliation

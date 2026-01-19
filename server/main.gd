@@ -11,5 +11,5 @@ func _ready():
 	start_game_server()
 
 func start_game_server():
-	var map_server = MapServer.new()
-	add_child(map_server)
+	var game_server = GameServer.new()
+	add_child(game_server)

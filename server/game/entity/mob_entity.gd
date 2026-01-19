@@ -1,4 +1,4 @@
-class_name MobServer
+class_name MobEntity
 extends CharacterBody2D
 
 const MobData = preload("res://game/data/mob_data.gd")

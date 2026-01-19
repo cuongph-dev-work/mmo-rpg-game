@@ -28,12 +28,12 @@ server/
 │   │   ├── map_data.gd          # Map definitions
 │   │   └── mob_data.gd          # Mob templates
 │   │
-│   ├── map_server.gd            # Main server controller
+│   ├── game_server.gd            # Main server controller
 │   ├── map.gd                   # Map + Channel management
 │   ├── channel.gd               # Channel isolation logic
 │   ├── player_manager.gd        # Player tracking
-│   ├── player_server.gd         # Player entity (CharacterBody2D)
-│   └── mob_server.gd            # Mob entity (CharacterBody2D)
+│   ├── player_entity.gd         # Player entity (CharacterBody2D)
+│   └── mob_entity.gd            # Mob entity (CharacterBody2D)
 │
 ├── scenes/                      # Godot scenes
 │   ├── player/Player.tscn       # Player scene template
@@ -183,6 +183,19 @@ Mỗi map được định nghĩa trong file JSON:
 - Channel-specific spawning
 - Respawn system với configurable timer
 - Elite variants (2x HP, 1.5x ATK)
+
+### 6. Tickrate & Network Performance
+
+**Server Tickrate: 30 Hz**
+- Cấu hình trong `project.godot`: `common/physics_ticks_per_second=30`
+- **Lý do**:
+  - Tiết kiệm 50% CPU & Bandwidth so với mặc định 60Hz.
+  - Chuẩn mực cho MMO RPG (WoW ~20Hz, MOBA ~30Hz).
+
+**Replication Strategy:**
+- `Replication Interval`: **0** (Mặc định - Gửi mỗi Tick).
+- Kết quả: Server gửi snapshot **30 lần/giây**.
+- Client Interpolation: Đã tinh chỉnh (`delta * 10`) để hiển thị mượt mà với data 30Hz.
 
 ### 5. Performance Optimizations
 

@@ -1,5 +1,1 @@
 res://entities/player/Player.tscn
-res://entities/player/Player.gd
-res://scenes/world/World.gd
-res://scenes/world/World.tscn
-res://entities/mob/Mob.gd

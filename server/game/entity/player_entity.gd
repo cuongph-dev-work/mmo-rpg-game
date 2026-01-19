@@ -1,4 +1,4 @@
-class_name PlayerServer
+class_name PlayerEntity
 extends CharacterBody2D
 
 var speed = 200.0

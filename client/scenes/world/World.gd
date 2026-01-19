@@ -35,28 +35,7 @@ func _on_channel_selected(index: int):
 	print("[UI] Requesting switch to Channel %d" % channel_id)
 	
 	# Call Server RPC
-	# We need to call this on the MapServer.
-	# MapServer logic is handled differently - usually we call RPC on the node that has the RPC method.
-	# The RPC is in MapServer.gd, but on client where is the corresponding node?
-	# In our setup, MapServer logic is likely authoritative and accessed via valid RPC paths.
-	# However, our client doesn't have a MapServer node.
-	# We added `request_channel_change` to `MapServer.gd` which is `/root/MapServer`.
-	# But wait, our current RPC setup relies on `World` node for common stuff.
-	# `request_channel_change` is in `MapServer.gd`, NOT `World.gd` on server.
-	# The client needs a node path that matches `/root/MapServer` to call it?
-	# Or we should put the RPC stub in `World.gd` (Server) and delegate?
-	# Actually, better to move `request_channel_change` to `World.gd` (Server) or ensure Client can call it.
-	# For simplified MVP, let's put the RPC call to proper path.
-	# BUT we don't have MapServer node stub on client.
-	# SOLUTION: Move `request_channel_change` to `Server/Scenes/World/World.gd` or call via `/root/World` if we mapped it.
-	# Wait, `MapServer` script is the root `/root/MapServer` on server. Client has no such node.
-	# We MUST use `World.gd` on Server as the gateway for Client RPCs.
-	
-	# Let's call it via the World node derived from `Net` or just `rpc("request_channel_change", ...)` if we implement it in THIS file?
-	# If we add `request_channel_change` to CLIENT World.gd as an RPC, we can call it? No, that sends to self or server if configured.
-	# Correct way: Add `request_channel_change` STUB to Client World.gd calling `rpc_id(1, ...)`,
-	# AND Add `request_channel_change` to SERVER World.gd which then calls MapServer.
-	
+	# Route: Client(World) -> Server(World) -> MapServer
 	rpc_id(1, "request_channel_change", channel_id)
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -141,3 +120,47 @@ func despawn_mob(id: int):
 		node.queue_free()
 		Bus.mob_despawned.emit(str(id))
 		print("[World] Mob despawned: %d" % id)
+
+@rpc("authority", "call_remote", "reliable")
+func spawn_player(id: int, pos: Vector2):
+	print("[World] RPC spawn_player received: %d at %s" % [id, pos])
+	if entity_container.has_node(str(id)):
+		# Nếu player đã tồn tại, chỉ cần update vị trí (teleport)
+		var p = entity_container.get_node(str(id))
+		p.position = pos
+		# Reset physics interpolation nếu cần
+		p.server_sync_position = pos
+		return
+		
+	# Nếu là local player (id == my_id), đã được spawn ở _on_net_connected rồi, 
+	# nhưng có thể server muốn force spawn lại hoặc di chuyển?
+	var my_id = multiplayer.get_unique_id()
+	if id == my_id:
+		# Update vị trí của chính mình nếu server yêu cầu
+		if entity_container.has_node(str(id)):
+			var me = entity_container.get_node(str(id))
+			me.position = pos
+		return
+
+	# Spawn remote player
+	var player = player_scene.instantiate()
+	player.name = str(id)
+	player.position = pos
+	
+	player.set_multiplayer_authority(id)
+	if player.has_node("MultiplayerSynchronizer"):
+		player.get_node("MultiplayerSynchronizer").set_multiplayer_authority(1)
+		
+	entity_container.add_child(player)
+	Bus.player_spawned.emit(str(id))
+
+@rpc("authority", "call_remote", "reliable")
+func despawn_player(id: int):
+	print("[World] RPC despawn_player received: %d" % id)
+	var my_id = multiplayer.get_unique_id()
+	if id == my_id:
+		return # Không bao giờ despawn chính mình theo lệnh này
+		
+	if entity_container.has_node(str(id)):
+		entity_container.get_node(str(id)).queue_free()
+		print("[World] Player despawned: %d" % id)
