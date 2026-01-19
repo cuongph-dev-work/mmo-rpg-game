@@ -1,0 +1,38 @@
+{
+	"map_id": 1,
+	"map_name": "Forest Village",
+	"max_channels": 3,
+	"max_players_per_channel": 50,
+	"scene_path": "res://scenes/maps/forest_village.tscn",
+	"description": "A peaceful forest village where players start their journey",
+	"mob_spawns": [
+		{
+			"mob_id": "slime",
+			"spawn_count": 5,
+			"spawn_area": {
+				"rect": [
+					100,
+					100,
+					400,
+					300
+				]
+			},
+			"respawn_time": 5.0,
+			"elite_chance": 0.1
+		},
+		{
+			"mob_id": "wolf",
+			"spawn_count": 3,
+			"spawn_area": {
+				"rect": [
+					500,
+					400,
+					400,
+					200
+				]
+			},
+			"respawn_time": 10.0,
+			"elite_chance": 0.2
+		}
+	]
+}

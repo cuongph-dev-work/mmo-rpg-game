@@ -1,0 +1,40 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvq8xn2y5qw7j"]
+
+[ext_resource type="Script" uid="uid://t4lq7f3sokyc" path="res://scenes/bootstrap/Bootstrap.gd" id="1_bootstrap"]
+
+[node name="Bootstrap" type="Node"]
+script = ExtResource("1_bootstrap")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Panel"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -50.0
+offset_right = 200.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "MMO RPG Client"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Initializing..."
+horizontal_alignment = 1
+vertical_alignment = 1

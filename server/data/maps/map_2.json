@@ -1,0 +1,8 @@
+{
+	"map_id": 2,
+	"map_name": "Dragon's Lair",
+	"max_channels": 5,
+	"max_players_per_channel": 30,
+	"scene_path": "res://scenes/maps/dragons_lair.tscn",
+	"description": "A dangerous dungeon filled with dragons and treasures"
+}

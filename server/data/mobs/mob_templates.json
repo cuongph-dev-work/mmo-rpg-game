@@ -1,0 +1,36 @@
+{
+    "mobs": {
+        "slime": {
+            "hp": 50,
+            "atk": 5,
+            "def": 0,
+            "moveSpeed": 80,
+            "expReward": 10,
+            "scale": 1.0,
+            "ai": {
+                "aggroRange": 200.0,
+                "chaseRange": 400.0,
+                "leashRange": 500.0,
+                "patrolRadius": 100.0,
+                "patrolSpeed": 40.0,
+                "behavior": "neutral"
+            }
+        },
+        "wolf": {
+            "hp": 120,
+            "atk": 15,
+            "def": 2,
+            "moveSpeed": 150,
+            "expReward": 25,
+            "scale": 1.2,
+            "ai": {
+                "aggroRange": 350.0,
+                "chaseRange": 600.0,
+                "leashRange": 800.0,
+                "patrolRadius": 300.0,
+                "patrolSpeed": 80.0,
+                "behavior": "hostile"
+            }
+        }
+    }
+}
