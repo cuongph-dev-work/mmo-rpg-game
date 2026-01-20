@@ -8,6 +8,7 @@ signal gateway_connected()
 signal gateway_disconnected()
 signal enter_world_success(data: Dictionary)
 signal gateway_error(error: Dictionary)
+signal session_replaced(message: String)
 
 # WebSocket
 var ws: WebSocketPeer = null
@@ -107,8 +108,16 @@ func _on_connection_state_changed(state: WebSocketPeer.State) -> void:
 			gateway_connected.emit()
 		
 		WebSocketPeer.STATE_CLOSED:
-			print("[GatewayClient] 🔌 Disconnected from Gateway")
+			var close_code = ws.get_close_code() if ws else 0
 			is_connecting = false
+			
+			# Check if this was a session replacement (close code 4001)
+			if close_code == 4001:
+				print("[GatewayClient] 🔐 Session replaced by another device (code 4001)")
+				session_replaced.emit("You have been logged in from another device")
+			else:
+				print("[GatewayClient] 🔌 Disconnected from Gateway (code: %d)" % close_code)
+			
 			gateway_disconnected.emit()
 
 func _on_message_received(message: String) -> void:
@@ -150,6 +159,12 @@ func _handle_event(event: String, payload: Dictionary) -> void:
 			var error_message = payload.get("message", "Unknown error")
 			print("[GatewayClient] ❌ Error: %s - %s" % [error_code, error_message])
 			gateway_error.emit(payload)
+		
+		"session_replaced":
+			var msg = payload.get("message", "You have been logged in from another device")
+			print("[GatewayClient] 🔐 Session replaced: %s" % msg)
+			session_replaced.emit(msg)
+			disconnect_from_gateway()
 		
 		_:
 			print("[GatewayClient] ⚠️ Unhandled event: %s" % event)

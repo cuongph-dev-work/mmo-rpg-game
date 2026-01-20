@@ -4,6 +4,7 @@ export const REDIS_KEYS = {
   MAP_ALLOCATION: (mapId: number) => `map_allocation:${mapId}`,
   USER_SESSION: (userId: string) => `session:${userId}`,
   GATEWAY: (gatewayId: string) => `gateway:${gatewayId}`,
+  TOKEN_VERSION: (userId: string) => `token_version:${userId}`,
 } as const;
 
 // TTL Values (in seconds)

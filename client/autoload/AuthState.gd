@@ -36,6 +36,12 @@ func clear_auth() -> void:
 	current_character_data = {}
 	print("[AuthState] 🔓 Authentication cleared")
 
+func on_session_replaced() -> void:
+	"""Called when session is replaced by another device - clears both memory and disk"""
+	clear_auth()
+	clear_saved_state()
+	print("[AuthState] 🔐 Token invalidated due to session replacement")
+
 func is_authenticated() -> bool:
 	"""Check if user is authenticated"""
 	return access_token != "" and user_id != ""

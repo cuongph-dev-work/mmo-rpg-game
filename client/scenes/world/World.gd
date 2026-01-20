@@ -20,6 +20,9 @@ func _ready():
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	
+	# Gateway session events
+	GatewayClient.session_replaced.connect(_on_session_replaced)
+	
 	# UI Setup
 	var channel_selector = $UI/ChannelSelector
 	if channel_selector:
@@ -195,3 +198,29 @@ func despawn_player(id: int):
 	if entity_container.has_node(str(id)):
 		entity_container.get_node(str(id)).queue_free()
 		print("[World] Player despawned: %d" % id)
+
+func _on_session_replaced(message: String):
+	"""Handle session replacement - another device logged in"""
+	print("[World] ⚠️ Session replaced: %s" % message)
+	
+	# Clear authentication state
+	AuthState.on_session_replaced()
+	
+	# Disconnect from map server
+	Net.disconnect_from_server()
+	
+	# Show notification dialog
+	var dialog = AcceptDialog.new()
+	dialog.title = "Session Ended"
+	dialog.dialog_text = message
+	dialog.dialog_hide_on_ok = true
+	add_child(dialog)
+	dialog.popup_centered()
+	
+	# Return to login after dialog closed
+	dialog.confirmed.connect(func():
+		get_tree().change_scene_to_file("res://scenes/login/Login.tscn")
+	)
+	dialog.canceled.connect(func():
+		get_tree().change_scene_to_file("res://scenes/login/Login.tscn")
+	)

@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CharactersModule } from './modules/characters/characters.module';
 import { CharacterClassesModule } from './modules/character-classes/character-classes.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CharacterClassesModule } from './modules/character-classes/character-cl
       isGlobal: true,
       envFilePath: '.env',
     }),
+    RedisModule,
     DatabaseModule,
     AuthModule,
     UsersModule,

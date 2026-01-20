@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
   // Enable CORS
   app.enableCors();
@@ -29,11 +31,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT || 3000;
+  const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
 
   new Logger('Bootstrap').log(`🚀 Auth Service is running on: http://localhost:${port}`);
-  new Logger('Bootstrap').log(`📚 Swagger UI available at: http://localhost:${port}/api`);
 }
 
 bootstrap();

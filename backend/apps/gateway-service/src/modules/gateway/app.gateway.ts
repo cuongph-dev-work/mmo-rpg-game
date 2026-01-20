@@ -26,6 +26,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(AppGateway.name);
+  
+  // Map to track connected clients by userId for kick functionality
+  private readonly connectedClients = new Map<string, AuthenticatedSocket>();
 
   constructor(
     private readonly authService: AuthService,
@@ -47,7 +50,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
     this.logger.log(`Found token, validating...`);
 
-    const payload = this.authService.validateToken(token);
+    const payload = await this.authService.validateToken(token);
     if (!payload) {
       this.logger.warn('Connection attempt invalid token');
       client.close(1008, 'Invalid token');
@@ -57,6 +60,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.userId = payload.userId;
     const gatewayId = this.configService.get<string>('GATEWAY_ID', 'gateway-1');
     
+    // Track this client for potential kicks
+    this.connectedClients.set(payload.userId, client);
+    
     await this.worldClientService.registerSession(payload.userId, gatewayId);
     this.logger.log(`User ${payload.userId} connected`);
     
@@ -65,9 +71,40 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: AuthenticatedSocket) {
     if (client.userId) {
+      // Remove from tracking map
+      this.connectedClients.delete(client.userId);
+      
       await this.worldClientService.removeSession(client.userId);
       this.logger.log(`User ${client.userId} disconnected`);
     }
+  }
+
+  /**
+   * Kick a user by closing their WebSocket connection
+   * Called via HTTP from auth-service when a new login occurs
+   */
+  kickUser(userId: string): boolean {
+    const client = this.connectedClients.get(userId);
+    
+    if (client && client.readyState === WebSocket.OPEN) {
+      this.logger.log(`Kicking user ${userId} due to new login`);
+      
+      // Send kick notification before closing
+      client.send(JSON.stringify({
+        event: 'session_replaced',
+        data: { message: 'You have been logged in from another device' }
+      }));
+      
+      // Close with custom code 4001 = Session Replaced
+      client.close(4001, 'Session replaced');
+      
+      // Clean up immediately
+      this.connectedClients.delete(userId);
+      
+      return true;
+    }
+    
+    return false;
   }
 
   @SubscribeMessage('enter_world')
