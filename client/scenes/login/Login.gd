@@ -18,6 +18,19 @@ func _ready():
 	print("[Login] Login scene ready")
 	status_label.text = ""
 	
+	# Try to load saved auth state
+	if AuthState.load_from_disk():
+		if AuthState.has_character():
+			_show_status("Restoring session... Skipping to Character Select", Color.GREEN)
+			await get_tree().create_timer(0.5).timeout
+			get_tree().change_scene_to_file("res://scenes/character_select/CharacterSelect.tscn")
+			return
+		else:
+			_show_status("Session restored! Please select character.", Color.GREEN)
+			await get_tree().create_timer(1.0).timeout
+			get_tree().change_scene_to_file("res://scenes/character_select/CharacterSelect.tscn")
+			return
+	
 	# Set default test credentials for easier testing
 	username_input.text = "testuser"
 	password_input.text = "test123"
@@ -105,6 +118,7 @@ func _on_auth_success(data: Dictionary):
 	
 	# Store authentication
 	AuthState.set_auth(access_token, user_id)
+	AuthState.save_to_disk() # 💾 Save for auto-login next time
 	
 	if current_request_type == RequestType.REGISTER:
 		_show_status("Account created! Redirecting...", Color.GREEN)

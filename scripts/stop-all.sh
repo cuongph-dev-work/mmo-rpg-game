@@ -32,10 +32,12 @@ kill_port() {
 kill_port 3000  # Auth Service
 kill_port 3001  # World Directory
 kill_port 3002  # Gateway Service
-kill_port 4001  # Map Server
+kill_port 4001  # Map Server (Godot headless only)
 
-# Kill all Godot processes
-pgrep -i godot | xargs kill -9 2>/dev/null || true
+# Kill Godot headless server specifically (not client)
+# Only kill processes with --headless flag
+echo -e "${RED}✗${NC} Stopping Map Server (headless only)"
+pkill -f "godot --headless" 2>/dev/null || true
 
 # Kill PIDs from file if exists
 if [ -f "$LOGS_DIR/.pids" ]; then

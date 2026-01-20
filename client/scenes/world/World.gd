@@ -20,9 +20,40 @@ func _ready():
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	
-	# Start connection *after* world is loaded
-	print("[World] Connecting to server...")
-	Net.connect_to_server()
+	# UI Setup
+	var channel_selector = $UI/ChannelSelector
+	if channel_selector:
+		channel_selector.item_selected.connect(_on_channel_selected)
+	
+	# Check if we have map server data from Character Select
+	if AuthState.map_server_data.is_empty():
+		print("[World] ERROR: No map server data! Returning to character select...")
+		get_tree().change_scene_to_file("res://scenes/character_select/CharacterSelect.tscn")
+		return
+	
+	# Use map server data from AuthState
+	_connect_to_map_server(AuthState.map_server_data)
+
+func _connect_to_map_server(data: Dictionary):
+	"""Connect to allocated Map Server using data from Gateway"""
+	var map_ip = data.get("map_ip", "127.0.0.1")
+	var map_port = data.get("map_port", 4001)
+	var ticket = data.get("ticket", "")
+	var spawn_pos = data.get("spawn_pos", {"x": 400, "y": 300})
+	
+	print("[World] 🎯 Received Map Server allocation:")
+	print("  - IP: %s" % map_ip)
+	print("  - Port: %d" % map_port)
+	print("  - Ticket: %s" % ticket)
+	print("  - Spawn: (%s, %s)" % [spawn_pos.get("x"), spawn_pos.get("y")])
+	
+	# Set spawn position
+	spawn_position = Vector2(spawn_pos.get("x", 400), spawn_pos.get("y", 300))
+	Bus.spawn_position_set.emit(spawn_position)
+	
+	# Connect to Map Server
+	print("[World] Connecting to Map Server at %s:%d..." % [map_ip, map_port])
+	Net.connect_to_server(map_ip, map_port)
 	
 	# UI Setup
 	var channel_selector = $UI/ChannelSelector

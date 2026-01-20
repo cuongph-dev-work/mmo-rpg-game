@@ -15,8 +15,11 @@ func _ready():
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 
-func connect_to_server():
-	"""Connect to the game server"""
+func connect_to_server(ip: String = "127.0.0.1", p: int = 4001):
+	"""Connect to the game server with specified IP and port"""
+	hostname = ip
+	port = p
+	
 	print("[Net] Connecting to %s:%d..." % [hostname, port])
 	
 	var error = peer.create_client(hostname, port)

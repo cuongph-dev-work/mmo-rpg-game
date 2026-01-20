@@ -1,0 +1,13 @@
+# Logs
+logs/*.log
+logs/.pids
+
+# Keep README
+!logs/README.md
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

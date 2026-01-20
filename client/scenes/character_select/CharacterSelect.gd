@@ -255,12 +255,13 @@ func _on_enter_world_button_pressed():
 func _on_enter_world_success(data: Dictionary):
 	print("[CharacterSelect] Enter world successful! Data: %s" % data)
 	
-	# For now, just transition to World scene
-	# In full implementation, this would use the map allocation data
+	# Store map server allocation data for World scene to use
+	AuthState.map_server_data = data
+	
 	status_label.text = "✅ Entering world..."
 	status_label.add_theme_color_override("font_color", Color.GREEN)
 	
-	await get_tree().create_timer(1.0).timeout
+	# Change scene immediately so World can connect to Map Server
 	get_tree().change_scene_to_file("res://scenes/world/World.tscn")
 
 func _on_gateway_error(error: Dictionary):

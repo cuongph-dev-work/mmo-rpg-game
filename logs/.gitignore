@@ -1,0 +1,6 @@
+# Logs
+logs/*.log
+logs/.pids
+
+# Keep README
+!logs/README.md

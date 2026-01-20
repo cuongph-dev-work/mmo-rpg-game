@@ -1,6 +1,3 @@
-res://entities/player/Player.tscn
-res://scenes/login/Login.gd
 res://scenes/login/Login.tscn
-res://autoload/Config.gd
 res://scenes/character_select/CharacterSelect.gd
-res://scenes/character_select/CharacterSelect.tscn
+res://scenes/world/World.gd

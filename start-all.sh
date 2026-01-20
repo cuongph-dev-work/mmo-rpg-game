@@ -34,14 +34,11 @@ kill_port() {
     fi
 }
 
-# Function to kill all Godot processes
-kill_godot() {
-    local pids=$(pgrep -i godot 2>/dev/null || true)
-    if [ ! -z "$pids" ]; then
-        echo -e "${YELLOW}⚠${NC} Killing existing Godot processes"
-        echo "$pids" | xargs kill -9 2>/dev/null || true
-        sleep 0.5
-    fi
+# Function to kill Godot headless server only (not client)
+kill_godot_server() {
+    echo -e "${YELLOW}⚠${NC} Killing existing Godot headless server"
+    pkill -f "godot --headless" 2>/dev/null || true
+    sleep 0.5
 }
 
 echo ""
@@ -50,32 +47,36 @@ kill_port 3000  # Auth Service
 kill_port 3001  # World Directory
 kill_port 3002  # Gateway Service
 kill_port 4001  # Map Server
-kill_godot
+kill_godot_server
 
 echo ""
 echo -e "${BLUE}[2/2] Starting services...${NC}"
 
 # Start Backend Services
-cd "$PROJECT_ROOT/backend"
-
 echo -e "${GREEN}🚀${NC} Starting Auth Service (port 3000)..."
-npm run start:dev auth-service > "$LOGS_DIR/auth.log" 2>&1 &
+cd "$PROJECT_ROOT/backend/apps/auth-service"
+npx nest start --watch > "$LOGS_DIR/auth.log" 2>&1 &
 AUTH_PID=$!
 echo -e "   PID: $AUTH_PID | Log: logs/auth.log"
+cd "$PROJECT_ROOT"
 
 sleep 2
 
 echo -e "${GREEN}🚀${NC} Starting World Directory (port 3001)..."
-npm run start:dev world-directory > "$LOGS_DIR/world.log" 2>&1 &
+cd "$PROJECT_ROOT/backend/apps/world-directory"
+npx nest start --watch > "$LOGS_DIR/world.log" 2>&1 &
 WORLD_PID=$!
 echo -e "   PID: $WORLD_PID | Log: logs/world.log"
+cd "$PROJECT_ROOT"
 
 sleep 2
 
 echo -e "${GREEN}🚀${NC} Starting Gateway Service (port 3002)..."
-npm run start:dev gateway-service > "$LOGS_DIR/gateway.log" 2>&1 &
+cd "$PROJECT_ROOT/backend/apps/gateway-service"
+npx nest start --watch > "$LOGS_DIR/gateway.log" 2>&1 &
 GATEWAY_PID=$!
 echo -e "   PID: $GATEWAY_PID | Log: logs/gateway.log"
+cd "$PROJECT_ROOT"
 
 sleep 3
 
@@ -83,7 +84,7 @@ sleep 3
 cd "$PROJECT_ROOT/server"
 
 echo -e "${GREEN}🚀${NC} Starting Map Server (Map 1, port 4001)..."
-godot --headless --map-id=1 --port=4001 > "$LOGS_DIR/map_server.log" 2>&1 &
+./start_server.sh 1 4001 > "$LOGS_DIR/map_server.log" 2>&1 &
 MAP_PID=$!
 echo -e "   PID: $MAP_PID | Log: logs/map_server.log"
 
