@@ -42,12 +42,13 @@ func init(data: Dictionary) -> void:
 	print("🚪 Gate '%s' (ID: %d) initialized at %s" % [gate_name, gate_id, position])
 
 func _update_collision_size(size: Vector2) -> void:
-	# Update detection area shape
+	# Update detection area shape with PADDING (to compensate for latency)
 	var detect_shape = detection_area.get_node("CollisionShape2D")
 	if detect_shape and detect_shape.shape:
-		detect_shape.shape.size = size
+		var padding = 20.0 # +10px each side
+		detect_shape.shape.size = size + Vector2(padding, padding)
 	
-	# Update mob blocker shape
+	# Update mob blocker shape (Keep EXACT size to avoid invisible walls)
 	var blocker_shape = mob_blocker.get_node("CollisionShape2D")
 	if blocker_shape and blocker_shape.shape:
 		blocker_shape.shape.size = size

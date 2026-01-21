@@ -39,7 +39,7 @@ func _physics_process(delta):
 		var dist_sq = position.distance_squared_to(server_sync_position)
 		if dist_sq > 2500: # > 50px error: Hard Snap (Teleport)
 			position = server_sync_position
-		elif dist_sq > 100: # > 10px error: Smooth Correction
+		elif dist_sq > 400: # > 20px error: Smooth Correction
 			position = position.lerp(server_sync_position, 0.2)
 			
 	else:
