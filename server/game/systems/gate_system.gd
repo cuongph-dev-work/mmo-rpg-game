@@ -14,6 +14,7 @@ var game_server # Reference to GameServer
 
 # State
 var gates: Array = [] # Array of GateEntity nodes
+var player_cooldowns: Dictionary = {} # Map<player_id, timestamp_ms>
 
 # Signals
 signal player_entered_gate(player_id: int, gate_data: Dictionary)
@@ -96,6 +97,9 @@ func sync_gates_to_player(player_id: int) -> void:
 		)
 	
 	print("🚪 Synced %d gates to player %d" % [gates.size(), player_id])
+	
+	# Set cooldown on connect/sync to prevent immediate back-port
+	set_player_cooldown(player_id, 5.0)
 
 
 # ============================================================
@@ -105,12 +109,20 @@ func sync_gates_to_player(player_id: int) -> void:
 func _on_player_entered_gate(player_id: int, gate_entity: Node2D) -> void:
 	var gate_data = gate_entity.get_gate_data()
 	
+	# Check Cooldown
+	if _is_player_on_cooldown(player_id):
+		return
+	
 	print("🚪 Player %d entered gate '%s'" % [player_id, gate_data.get("name", "")])
 	
 	if not _is_allowed_to_travel(player_id, gate_data):
 		return
 	
 	player_entered_gate.emit(player_id, gate_data)
+	
+	# Set cooldown to prevent double trigger
+	set_player_cooldown(player_id, 5.0)
+	
 	_request_map_transfer(player_id, gate_data)
 
 func _is_allowed_to_travel(player_id: int, gate_data: Dictionary) -> bool:
@@ -143,6 +155,23 @@ func _request_map_transfer(player_id: int, gate_data: Dictionary) -> void:
 	var world_node = _get_world_node()
 	if world_node:
 		world_node.rpc_id(player_id, "on_map_transfer_requested", target_map_id, target_spawn)
+
+func set_player_cooldown(player_id: int, duration: float) -> void:
+	var end_time = Time.get_ticks_msec() + (duration * 1000)
+	player_cooldowns[player_id] = end_time
+	print("⏳ Gate Cooldown set for Player %d (%.1fs)" % [player_id, duration])
+
+func _is_player_on_cooldown(player_id: int) -> bool:
+	if not player_cooldowns.has(player_id):
+		return false
+		
+	var current_time = Time.get_ticks_msec()
+	if current_time < player_cooldowns[player_id]:
+		return true
+		
+	# Cleanup expired
+	player_cooldowns.erase(player_id)
+	return false
 
 # ============================================================
 # DYNAMIC GATES (Event System)

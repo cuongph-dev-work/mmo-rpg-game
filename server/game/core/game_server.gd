@@ -17,8 +17,8 @@ var combat_system: CombatSystem
 var loot_system: LootSystem
 var gate_system: GateSystem
 
-# Data
-var map_id: int
+# Systems
+var persistence_system: PersistenceSystem
 var map_instance: Map
 
 # Scenes
@@ -59,6 +59,9 @@ func _async_setup():
 	_setup_combat_system()
 	_setup_loot_system()
 	_setup_gate_system()
+	_setup_loot_system()
+	_setup_gate_system()
+	_setup_persistence_system()
 	
 	# 5. Start Server
 	if network_manager.start_server() == OK:
@@ -239,7 +242,7 @@ func _setup_entity_manager():
 
 func _setup_replication_system():
 	replication_system = ReplicationSystem.new()
-	replication_system.setup(entity_manager, 20) # 20Hz Network Rate
+	replication_system.setup(entity_manager, 30) # 30Hz Network Rate (Balanced)
 	add_child(replication_system)
 
 func _setup_channel_manager():
@@ -268,6 +271,56 @@ func _setup_gate_system():
 	gate_system.setup(map_instance, entity_manager.entity_container, self)
 	add_child(gate_system)
 
+func _setup_persistence_system():
+	persistence_system = PersistenceSystem.new()
+	add_child(persistence_system)
+	persistence_system.setup()
+
+func handle_authentication(player_id: int, ticket: String, char_id: String):
+	print("🔐 Authenticating Player %d as Character %s" % [player_id, char_id])
+	
+	var player_entry = player_manager.get_player(player_id)
+	if player_entry.is_empty():
+		push_error("❌ Authentication failed: Player %d not found in manager" % player_id)
+		return
+		
+	player_manager.players[player_id]["data"]["character_id"] = char_id
+	
+	# Use Persistence System
+	persistence_system.load_player_state(char_id, func(data):
+		if not data.is_empty():
+			print("📥 Loaded character data for %s" % char_id)
+			if player_manager.players.has(player_id):
+				player_manager.players[player_id]["data"]["persisted_state"] = data
+	)
+
+func save_player_state(player_id: int):
+	var player_info = player_manager.get_player(player_id)
+	if player_info.is_empty(): return
+	
+	var char_id = player_info.get("data", {}).get("character_id")
+	if not char_id: return
+		
+	var player_node = entity_manager.get_entity_node(player_id)
+	if not player_node: return
+		
+	# Gather Data
+	var pos = player_node.position
+	var stats = {}
+	if player_node.has_node("StatsComponent"):
+		var stats_comp = player_node.get_node("StatsComponent")
+		stats = {
+			"hp": stats_comp.current_hp,
+			"mp": stats_comp.current_mp
+		}
+		
+	var payload = {
+		"map_id": map_id,
+		"position": {"x": pos.x, "y": pos.y},
+		"stats": stats
+	}
+	
+	persistence_system.save_player_state(char_id, payload)
 
 # ============================================================
 # EVENT HANDLERS
@@ -276,31 +329,78 @@ func _setup_gate_system():
 func _on_player_connected(player_id: int):
 	print("🎮 Player %d connected" % player_id)
 	
-	# 1. Spawn Node
-	_spawn_player_node(player_id)
+	print("🎮 Player %d connected (waiting for spawn request)" % player_id)
 	
-	# 2. Channel & Sync
-	_handle_player_join_channel(player_id)
+	# Fallback: Force spawn if no request received in 2 seconds
+	await get_tree().create_timer(2.0).timeout
+	
+	if not multiplayer.get_peers().has(player_id):
+		return # Player disconnected
+		
+	if not entity_manager.has_entity(player_id):
+		print("⚠️ Spawn Timeout for %d - Forcing Default Spawn" % player_id)
+		# Default spawn pos (400, 300)
+		handle_player_spawn_request(player_id, Vector2(400, 300))
+
 
 func _on_player_disconnected(player_id: int):
 	print("👋 Player %d disconnected" % player_id)
 	
-	# 1. Logic Cleanup
+	# 1. Save Player State
+	save_player_state(player_id)
+	
+	# 2. Logic Cleanup
 	_handle_player_leave_channel(player_id)
 	
-	# 2. Node Cleanup
+	# 3. Node Cleanup
 	entity_manager.remove_entity(player_id)
 	player_manager.remove_player(player_id)
 
 func _on_mob_spawned(mob_node: Node, _channel_id: int):
 	replication_system.apply_replication_settings_to_new_entity(mob_node)
 
-func _spawn_player_node(player_id: int):
+func handle_player_spawn_request(player_id: int, pos: Vector2):
+	print("🚀 Player %d requested spawn at %s" % [player_id, pos])
+	
+	# Check for persisted state
+	var player_data = player_manager.get_player(player_id).get("data", {})
+	var spawn_pos = pos
+	var persisted_state = player_data.get("persisted_state", {})
+	
+	# Use persisted position if available (server authoritative option)
+	# For now, we trust client for position unless it's way off, 
+	# but technically we should use persisted_state.position if valid.
+	# Let's trust client 'pos' for initial spawn (as it comes from AuthState), 
+	# but we MUST apply stats from persisted_state.
+	
+	if persisted_state.has("position") and persisted_state.position != null:
+		# Optional: Verify distance or force position
+		pass
+
+	# 1. Spawn Node at specific position
+	_spawn_player_node(player_id, spawn_pos)
+	
+	# 2. Apply Persisted Stats
+	if persisted_state.has("stats"):
+		var p_node = entity_manager.get_entity_node(player_id)
+		if p_node and p_node.has_node("StatsComponent"):
+			var stats = p_node.get_node("StatsComponent")
+			var saved_stats = persisted_state.stats
+			var hp = saved_stats.get("hp", stats.max_hp)
+			var mp = saved_stats.get("mp", stats.max_mp)
+			stats.set_dynamic_stats(hp, mp)
+			print("❤️ Restored stats for %d: HP %d, MP %d" % [player_id, hp, mp])
+	
+	# 3. Channel & Sync
+	_handle_player_join_channel(player_id)
+
+func _spawn_player_node(player_id: int, start_pos: Vector2 = Vector2.ZERO):
 	if entity_manager.has_entity(player_id):
 		return
 		
 	var player = player_scene.instantiate()
 	player.name = str(player_id)
+	player.position = start_pos # Set Initial Position
 	player.set_multiplayer_authority(player_id)
 	
 	if player.has_node("MultiplayerSynchronizer"):

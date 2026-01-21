@@ -47,16 +47,25 @@ func _connect_to_map_server(data: Dictionary):
 	var map_ip = data.get("map_ip", "127.0.0.1")
 	var map_port = data.get("map_port", 4001)
 	var ticket = data.get("ticket", "")
-	var spawn_pos = data.get("spawn_pos", {"x": 400, "y": 300})
+	var spawn_pos = data.get("spawn_pos", null)
 	
-	print("[World] 🎯 Received Map Server allocation:")
-	print("  - IP: %s" % map_ip)
-	print("  - Port: %d" % map_port)
-	print("  - Ticket: %s" % ticket)
-	print("  - Spawn: (%s, %s)" % [spawn_pos.get("x"), spawn_pos.get("y")])
-	
-	# Set spawn position
-	spawn_position = Vector2(spawn_pos.get("x", 400), spawn_pos.get("y", 300))
+	if spawn_pos == null:
+		# Fallback: Try to use character data position if map matches
+		var char_map_id = AuthState.get_character_map_id()
+		var allocation_map_id = data.get("map_id", 1) # Assuming allocation data has map_id
+		
+		# If Gateway didn't send map_id, we assume it matches requested map.
+		# But purely relying on AuthState if spawn_pos is missing is safer than default (0,0).
+		if AuthState.has_character():
+			var char_pos = AuthState.get_character_position()
+			print("[World] ⚠️ No spawn_pos in allocation, falling back to Character Data: %s" % char_pos)
+			spawn_position = char_pos
+		else:
+			print("[World] ⚠️ No spawn_pos and no character data. Using default.")
+			spawn_position = Vector2(400, 300)
+	else:
+		spawn_position = Vector2(spawn_pos.get("x", 400), spawn_pos.get("y", 300))
+		
 	Bus.spawn_position_set.emit(spawn_position)
 	
 	# Connect to Map Server
@@ -85,10 +94,33 @@ func request_channel_change(target_channel_id: int):
 func _on_net_connected():
 	print("[World] Connection established!")
 	
+	# Authenticate with Server (Send Character ID)
+	# Note: In production, send Ticket and let Server verify. 
+	# For prototype, we trust Client sending char_id.
+	var char_id = AuthState.get_character_id()
+	var ticket = AuthState.map_server_data.get("ticket", "")
+	
+	print("[World] Authenticating as Character: %s" % char_id)
+	rpc_id(1, "authenticate", ticket, char_id)
+	
 	# Spawn local player immediately so we can receive server sync data
 	var my_id = multiplayer.get_unique_id()
 	print("[World] Spawning local player: %d" % my_id)
 	_spawn_player(my_id)
+	
+	# Request server to spawn us at the correct location (Gate Target)
+	print("[World] Requesting Server Spawn at: %s" % spawn_position)
+	rpc_id(1, "request_spawn", spawn_position.x, spawn_position.y)
+
+@rpc("any_peer", "call_remote", "reliable")
+func authenticate(ticket: String, char_id: String):
+	# RPC Stub
+	pass
+
+@rpc("any_peer", "call_remote", "reliable")
+func request_spawn(x: float, y: float):
+	# RPC Stub for server call
+	pass
 
 func _on_peer_connected(id):
 	if id == 1:

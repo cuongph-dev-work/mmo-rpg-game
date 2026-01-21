@@ -6,6 +6,7 @@ export { LoginResponseDto } from './dtos/auth/login-response.dto';
 // Character DTOs
 export { CreateCharacterDto } from './dtos/characters/create-character.dto';
 export { UpdateCharacterDto } from './dtos/characters/update-character.dto';
+export { UpdateCharacterStateDto } from './dtos/characters/update-character-state.dto';
 export { CharacterResponseDto } from './dtos/characters/character-response.dto';
 export { SelectCharacterResponseDto } from './dtos/characters/select-character-response.dto';
 export { CharacterClassResponseDto } from './dtos/characters/character-class-response.dto';

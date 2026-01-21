@@ -91,6 +91,28 @@ export class CharactersService {
     return this.toResponseDto(updated);
   }
 
+  async updateState(id: string, dto: { map_id?: number; position?: any; stats?: any }): Promise<CharacterResponseDto> {
+    const character = await this.prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      throw new NotFoundException('Character not found');
+    }
+
+    const updated = await this.prisma.character.update({
+      where: { id },
+      data: {
+        ...(dto.map_id !== undefined && { map_id: dto.map_id }),
+        ...(dto.position && { position: dto.position }),
+        ...(dto.stats && { stats: dto.stats }),
+      },
+      include: { class: true },
+    });
+
+    return this.toResponseDto(updated);
+  }
+
   async delete(id: string, userId: string): Promise<void> {
     // Check ownership
     const character = await this.prisma.character.findUnique({

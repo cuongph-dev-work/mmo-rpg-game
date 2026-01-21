@@ -52,3 +52,8 @@ func _physics_process(delta):
 func receive_input(_input: Vector2, _seq: int):
 	# Stub for RPC configuration
 	pass
+
+@rpc("authority", "call_local", "reliable")
+func update_stats(hp: int, max_hp: int, mp: int, max_mp: int):
+	print("❤️ Stats Updated: HP %d/%d MP %d/%d" % [hp, max_hp, mp, max_mp])
+	# TODO: Update UI overlay

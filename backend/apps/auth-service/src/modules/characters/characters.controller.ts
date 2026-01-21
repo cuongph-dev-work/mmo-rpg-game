@@ -70,4 +70,13 @@ export class CharactersController {
   async getCharacterInternal(@Param('id') id: string) {
     return this.charactersService.findById(id);
   }
+
+  @Patch(':id/internal')
+  @ApiOperation({ summary: 'Internal endpoint to update character state (map, pos, stats)' })
+  @ApiResponse({ status: 200, description: 'Character state updated' })
+  @ApiResponse({ status: 404, description: 'Character not found' })
+  async updateCharacterStateInternal(@Param('id') id: string, @Body() dto: any) {
+    // In strict env, check for API Key or Internal Network here
+    return this.charactersService.updateState(id, dto);
+  }
 }

@@ -15,6 +15,7 @@ func _ready():
 	collision_mask = 1
 	
 	_setup_sync()
+	_setup_components()
 
 func _setup_sync():
 	# Configure MultiplayerSynchronizer explicitly if needed
@@ -74,3 +75,33 @@ func receive_input(input: Vector2, seq: int):
 	if name != str(sender_id):
 		# Just a warning, might happen if ID logic is off
 		pass
+
+# ============================================================
+# STATS & SYNC
+# ============================================================
+
+const StatsComponentScript = preload("res://game/components/stats_component.gd")
+var stats_comp: Node
+
+func _setup_components():
+	# stats_comp might already exist if added via Scene
+	if has_node("StatsComponent"):
+		stats_comp = get_node("StatsComponent")
+	else:
+		stats_comp = StatsComponentScript.new()
+		stats_comp.name = "StatsComponent"
+		add_child(stats_comp)
+		stats_comp.initialize({"hp": 100, "atk": 10, "def": 0})
+	
+	if stats_comp.has_signal("health_changed"):
+		stats_comp.health_changed.connect(func(_cur, _max): _sync_stats())
+	if stats_comp.has_signal("mana_changed"):
+		stats_comp.mana_changed.connect(func(_cur, _max): _sync_stats())
+
+func _sync_stats():
+	rpc("update_stats", stats_comp.current_hp, stats_comp.max_hp, stats_comp.current_mp, stats_comp.max_mp)
+
+@rpc("authority", "call_local", "reliable")
+func update_stats(_hp: int, _max_hp: int, _mp: int, _max_mp: int):
+	# Stub for server (this runs on client mainly)
+	pass

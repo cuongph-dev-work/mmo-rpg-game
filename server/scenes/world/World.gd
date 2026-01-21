@@ -42,3 +42,22 @@ func request_channel_change(target_channel_id: int):
 		game_server.change_player_channel(player_id, target_channel_id)
 	else:
 		push_error("GameServer reference not set in World!")
+
+@rpc("any_peer", "call_remote", "reliable")
+func authenticate(ticket: String, char_id: String):
+	print("[World] RPC authenticate received from %d (Char: %s)" % [multiplayer.get_remote_sender_id(), char_id])
+	var player_id = multiplayer.get_remote_sender_id()
+	
+	if game_server:
+		game_server.handle_authentication(player_id, ticket, char_id)
+
+@rpc("any_peer", "call_remote", "reliable")
+func request_spawn(x: float, y: float):
+	print("[World] RPC request_spawn received from %d at (%f, %f)" % [multiplayer.get_remote_sender_id(), x, y])
+	var player_id = multiplayer.get_remote_sender_id()
+	
+	if game_server:
+		print("[World] Forwarding to GameServer...")
+		game_server.handle_player_spawn_request(player_id, Vector2(x, y))
+	else:
+		push_error("[World] CRITICAL: GameServer reference is NULL in World!")
