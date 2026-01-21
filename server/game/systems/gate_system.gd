@@ -2,7 +2,10 @@ class_name GateSystem
 extends Node
 
 ## GateSystem - Manages gates for map transfers
-## Spawns Area2D collision zones and handles player entry detection
+## Uses Gate.tscn scene for collision zones
+
+# Scene
+const GateScene = preload("res://scenes/gate/Gate.tscn")
 
 # Dependencies (Injected)
 var map_instance: Map
@@ -10,7 +13,7 @@ var entity_container: Node
 var game_server # Reference to GameServer
 
 # State
-var gates: Array = [] # Array of gate Area2D nodes
+var gates: Array = [] # Array of GateEntity nodes
 
 # Signals
 signal player_entered_gate(player_id: int, gate_data: Dictionary)
@@ -21,7 +24,6 @@ func setup(map: Map, container: Node, gs) -> void:
 	game_server = gs
 	print("✅ GateSystem initialized")
 	
-	# Setup gates from config
 	_setup_gates()
 
 # ============================================================
@@ -41,97 +43,90 @@ func _setup_gates() -> void:
 	
 	for gate_ref in gate_refs:
 		var gate_id = gate_ref.get("gate_id")
-		
-		# Get full gate data from registry, merged with overrides
 		var gate_data = GateData.get_merged_gate_data(gate_id, gate_ref)
 		if gate_data.is_empty():
 			print("⚠️ Gate %d not found in registry, skipping" % gate_id)
 			continue
 		
-		_spawn_gate_area(gate_data)
+		_spawn_gate(gate_data)
 	
 	print("✅ Gates setup complete")
 
-func _spawn_gate_area(gate_data: Dictionary) -> void:
-	var gate_id = gate_data.get("id", 0)
-	var pos_arr = gate_data.get("position", [0, 0])
-	var size_arr = gate_data.get("size", [50, 50])
-	var gate_name = gate_data.get("name", "Gate %d" % gate_id)
+func _spawn_gate(gate_data: Dictionary) -> void:
+	var gate = GateScene.instantiate()
+	gate.name = "Gate_%d" % gate_data.get("id", 0)
 	
-	var position = Vector2(pos_arr[0], pos_arr[1])
-	var size = Vector2(size_arr[0], size_arr[1])
+	# Connect signal before adding to tree
+	gate.player_entered.connect(_on_player_entered_gate)
 	
-	# Create Area2D for collision detection
-	var area = Area2D.new()
-	area.name = "Gate_%d" % gate_id
-	area.position = position
-	area.collision_layer = 0 # Don't collide with anything
-	area.collision_mask = 2 # Detect layer 2 (players)
+	# Add to scene tree first
+	entity_container.add_child(gate)
 	
-	# Create CollisionShape2D
-	var collision_shape = CollisionShape2D.new()
-	var rect_shape = RectangleShape2D.new()
-	rect_shape.size = size
-	collision_shape.shape = rect_shape
-	area.add_child(collision_shape)
+	# Initialize with data
+	gate.init(gate_data)
 	
-	# Store gate data in metadata
-	area.set_meta("gate_data", gate_data)
+	gates.append(gate)
 	
-	# Connect signal
-	area.body_entered.connect(_on_body_entered_gate.bind(area))
+	print("🚪 Spawned gate '%s' (ID: %d) at %s (size: %s)" % [gate_data.get("name", "Gate"), gate_data.get("id", 0), gate_data.get("position", Vector2.ZERO), gate_data.get("size", Vector2(50, 50))])
+
+
+# ============================================================
+# PLAYER SYNC
+# ============================================================
+
+func sync_gates_to_player(player_id: int) -> void:
+	var world_node = _get_world_node()
+	if not world_node:
+		return
 	
-	# Add to entity container (same parent as players/mobs)
-	entity_container.add_child(area)
-	gates.append(area)
+	for gate in gates:
+		var gate_data = gate.get_gate_data()
+		var pos_arr = gate_data.get("position", [0, 0])
+		var size_arr = gate_data.get("size", [50, 50])
+		
+		world_node.rpc_id(
+			player_id,
+			"spawn_gate",
+			gate_data.get("id", 0),
+			Vector2(pos_arr[0], pos_arr[1]),
+			Vector2(size_arr[0], size_arr[1]),
+			gate_data.get("name", "Gate"),
+			gate_data.get("type", "portal_blue"),
+			gate_data.get("target_map_id", 0)
+		)
 	
-	print("🚪 Spawned gate '%s' (ID: %d) at %s (size: %s)" % [gate_name, gate_id, position, size])
+	print("🚪 Synced %d gates to player %d" % [gates.size(), player_id])
+
 
 # ============================================================
 # COLLISION HANDLING
 # ============================================================
 
-func _on_body_entered_gate(body: Node, gate_area: Area2D) -> void:
-	# Check if the body is a player
-	if not body.is_in_group("players"):
-		return
-	
-	var player_id = int(str(body.name))
-	var gate_data = gate_area.get_meta("gate_data")
+func _on_player_entered_gate(player_id: int, gate_entity: Node2D) -> void:
+	var gate_data = gate_entity.get_gate_data()
 	
 	print("🚪 Player %d entered gate '%s'" % [player_id, gate_data.get("name", "")])
 	
-	# Validate travel conditions
 	if not _is_allowed_to_travel(player_id, gate_data):
 		return
 	
-	# Emit signal for external handling
 	player_entered_gate.emit(player_id, gate_data)
-	
-	# Send RPC to client to initiate map transfer
 	_request_map_transfer(player_id, gate_data)
 
 func _is_allowed_to_travel(player_id: int, gate_data: Dictionary) -> bool:
 	var required_level = gate_data.get("required_level", 1)
-	
-	# Get player node to check level
 	var player_node = entity_container.get_node_or_null(str(player_id))
 	if not player_node:
 		return false
 	
-	# Check level requirement (if StatsComponent exists)
+	# Check level requirement
 	if player_node.has_node("StatsComponent"):
 		var stats = player_node.get_node("StatsComponent")
 		if stats.has_method("get_level"):
 			var player_level = stats.get_level()
 			if player_level < required_level:
 				print("🚫 Player %d level %d is below required %d" % [player_id, player_level, required_level])
-				# TODO: Send RPC to notify player about level requirement
 				return false
-	
-	# TODO: Add more checks
-	# - Combat check (don't allow transfer while in combat)
-	# - Cooldown check (prevent spam transfer)
 	
 	return true
 
@@ -145,8 +140,7 @@ func _request_map_transfer(player_id: int, gate_data: Dictionary) -> void:
 	
 	print("🚀 Requesting map transfer for player %d -> Map %d at %s" % [player_id, target_map_id, target_spawn])
 	
-	# Send RPC to client via World node
-	var world_node = entity_container.get_parent()
+	var world_node = _get_world_node()
 	if world_node:
 		world_node.rpc_id(player_id, "on_map_transfer_requested", target_map_id, target_spawn)
 
@@ -154,24 +148,26 @@ func _request_map_transfer(player_id: int, gate_data: Dictionary) -> void:
 # DYNAMIC GATES (Event System)
 # ============================================================
 
-func spawn_dynamic_gate(params: Dictionary) -> Area2D:
+func spawn_dynamic_gate(params: Dictionary) -> Node2D:
+	var pos = params.get("position", Vector2.ZERO)
 	var gate_data = {
-		"id": randi() % 90000 + 10000, # Random ID for dynamic gates
+		"id": randi() % 90000 + 10000,
 		"name": params.get("name", "Event Gate"),
-		"position": [params.get("position", Vector2.ZERO).x, params.get("position", Vector2.ZERO).y],
+		"position": [pos.x, pos.y],
 		"size": params.get("size", [50, 50]),
 		"target_map_id": params.get("target_map_id", 0),
 		"target_spawn_pos": params.get("target_spawn_pos", [0, 0]),
 		"required_level": params.get("required_level", 1),
+		"type": params.get("type", "portal_blue"),
 		"is_dynamic": true
 	}
 	
-	_spawn_gate_area(gate_data)
+	_spawn_gate(gate_data)
 	var gate = gates.back()
 	
 	# Auto destroy timer
-	if params.has("duration_seconds") and params.duration_seconds > 0:
-		var duration = params.duration_seconds
+	var duration = params.get("duration_seconds", 0)
+	if duration > 0:
 		get_tree().create_timer(duration).timeout.connect(func():
 			if is_instance_valid(gate):
 				gates.erase(gate)
@@ -179,13 +175,26 @@ func spawn_dynamic_gate(params: Dictionary) -> Area2D:
 				print("🚪 Dynamic gate expired and removed")
 		)
 		
-		# Notify clients for VFX
-		var world_node = entity_container.get_parent()
+		var world_node = _get_world_node()
 		if world_node:
-			# Broadcast to all players in map
 			world_node.rpc("on_dynamic_gate_spawned", gate_data.position, duration)
 	
 	return gate
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+func _get_world_node() -> Node:
+	if entity_container:
+		return entity_container.get_parent()
+	return null
+
+func _arr_to_vec2(arr: Array) -> Vector2:
+	if arr.size() >= 2:
+		return Vector2(arr[0], arr[1])
+	return Vector2.ZERO
 
 # ============================================================
 # CLEANUP

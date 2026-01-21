@@ -5,3 +5,5 @@ res://scenes/world/World.tscn
 res://scenes/world/World.gd
 res://autoload/App.gd
 res://autoload/PlayerState.gd
+res://entities/gate/Gate.tscn
+res://autoload/GatewayClient.gd

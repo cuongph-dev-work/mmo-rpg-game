@@ -14,6 +14,10 @@ func despawn_mob(id: int):
 	pass
 
 @rpc("authority", "call_remote", "reliable")
+func spawn_gate(id: int, pos: Vector2, size: Vector2, gate_name: String, gate_type: String, target_map_id: int):
+	pass
+
+@rpc("authority", "call_remote", "reliable")
 func spawn_player(id: int, pos: Vector2):
 	pass
 

@@ -8,7 +8,8 @@ var input_vector = Vector2.ZERO
 var server_sync_position: Vector2 = Vector2.ZERO
 
 func _ready():
-	add_to_group("player")
+	add_to_group("players") # Add to group for Gate detection
+	print("Player Entity Ready: %s (Path: %s)" % [name, get_path()])
 	
 	# Physics Optimization: Only collide with World (Layer 1)
 	collision_mask = 1
@@ -38,13 +39,8 @@ func _physics_process(_delta):
 			# Apply movement for this input step
 			if input != Vector2.ZERO:
 				velocity = input.normalized() * speed
-				# CharacterBody2D handles delta internally in move_and_slide
-				# But for move_and_slide, velocity is pixels/second.
-				# We just set velocity and call move_and_slide once per effective tick?
-				# Actually, since we are re-simulating history or steps, 
-				# we might need to be careful. 
-				# Simple approach: Set velocity -> move_and_slide()
 				move_and_slide()
+				print("Player %s moved to: %s" % [name, position])
 			else:
 				velocity = Vector2.ZERO
 			
@@ -56,6 +52,9 @@ func _physics_process(_delta):
 	
 	# Update sync variable for clients to interpolate/reconcile towards
 	server_sync_position = position
+	if input_buffer.size() > 0:
+		print("Player %s pos: %s" % [name, position])
+
 
 @rpc("any_peer")
 func receive_input(input: Vector2, seq: int):

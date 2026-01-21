@@ -9,6 +9,7 @@ extends Node2D
 var spawn_position: Vector2 = Vector2(400, 300)
 var player_scene = preload("res://entities/player/Player.tscn")
 var mob_scene = preload("res://entities/mob/Mob.tscn")
+var gate_scene = preload("res://entities/gate/Gate.tscn")
 
 func _ready():
 	print("[World] World scene loaded")
@@ -163,6 +164,31 @@ func despawn_mob(id: int):
 		node.queue_free()
 		Bus.mob_despawned.emit(str(id))
 		print("[World] Mob despawned: %d" % id)
+
+@rpc("authority", "call_remote", "reliable")
+func spawn_gate(id: int, pos: Vector2, size: Vector2, gate_name: String, gate_type: String, target_map_id: int):
+	print("[World] Received spawn_gate RPC for ID: %d" % id)
+	if entity_container.has_node("Gate_%d" % id):
+		print("[World] Gate %d already exists, skipping." % id)
+		return
+	
+	var gate = gate_scene.instantiate()
+	gate.name = "Gate_%d" % id
+	
+	# Init gate with data
+	var data = {
+		"id": id,
+		"name": gate_name,
+		"position": [pos.x, pos.y],
+		"size": [size.x, size.y],
+		"type": gate_type,
+		"target_map_id": target_map_id
+	}
+	gate.init(data)
+	
+	entity_container.add_child(gate)
+	print("[World] 🚪 Gate spawned: %s at %s" % [gate_name, pos])
+
 
 # ============================================================
 # GATE SYSTEM - MAP TRANSFER

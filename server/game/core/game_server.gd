@@ -337,6 +337,9 @@ func _handle_player_join_channel(player_id: int):
 		# RPC Broadcasts (Legacy support for World.gd)
 		_broadcast_spawn_to_player(player_id, assigned_channel_id)
 		_broadcast_player_to_channel(player_id, assigned_channel_id)
+		
+		# Sync gates to player
+		gate_system.sync_gates_to_player(player_id)
 
 func _handle_player_leave_channel(player_id: int):
 	# Find channel

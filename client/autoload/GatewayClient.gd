@@ -106,7 +106,6 @@ func _on_connection_state_changed(state: WebSocketPeer.State) -> void:
 		WebSocketPeer.STATE_OPEN:
 			print("[GatewayClient] ✅ Connected to Gateway")
 			is_connecting = false
-			gateway_connected.emit()
 		
 		WebSocketPeer.STATE_CLOSED:
 			var close_code = ws.get_close_code() if ws else 0
@@ -147,6 +146,8 @@ func _handle_event(event: String, payload: Dictionary) -> void:
 	match event:
 		"welcome":
 			print("[GatewayClient] 👋 Welcome message: %s" % payload.get("message", ""))
+			# Session established, now safe to emit connected
+			gateway_connected.emit()
 		
 		"enter_world_success":
 			print("[GatewayClient] ✅ Enter world success!")
