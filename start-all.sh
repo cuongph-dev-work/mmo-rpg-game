@@ -46,7 +46,8 @@ echo -e "${BLUE}[1/2] Cleaning up existing processes...${NC}"
 kill_port 3000  # Auth Service
 kill_port 3001  # World Directory
 kill_port 3002  # Gateway Service
-kill_port 4001  # Map Server
+kill_port 4001  # Map Server 1
+kill_port 4002  # Map Server 2
 kill_godot_server
 
 echo ""
@@ -83,10 +84,17 @@ sleep 3
 # Start Map Server
 cd "$PROJECT_ROOT/server"
 
-echo -e "${GREEN}🚀${NC} Starting Map Server (Map 1, port 4001)..."
-./start_server.sh 1 4001 > "$LOGS_DIR/map_server.log" 2>&1 &
-MAP_PID=$!
-echo -e "   PID: $MAP_PID | Log: logs/map_server.log"
+echo -e "${GREEN}🚀${NC} Starting Map Server 1 (Map 1, port 4001)..."
+./start_server.sh 1 4001 > "$LOGS_DIR/map_server_1.log" 2>&1 &
+MAP1_PID=$!
+echo -e "   PID: $MAP1_PID | Log: logs/map_server_1.log"
+
+sleep 1
+
+echo -e "${GREEN}🚀${NC} Starting Map Server 2 (Map 2, port 4002)..."
+./start_server.sh 2 4002 > "$LOGS_DIR/map_server_2.log" 2>&1 &
+MAP2_PID=$!
+echo -e "   PID: $MAP2_PID | Log: logs/map_server_2.log"
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
@@ -97,14 +105,16 @@ echo -e "${BLUE}Service Status:${NC}"
 echo -e "  Auth Service:      http://localhost:3000 (PID: $AUTH_PID)"
 echo -e "  World Directory:   http://localhost:3001 (PID: $WORLD_PID)"
 echo -e "  Gateway Service:   ws://localhost:3002/ws (PID: $GATEWAY_PID)"
-echo -e "  Map Server:        ENet Port 4001 (PID: $MAP_PID)"
+echo -e "  Map Server 1:      ENet Port 4001 (PID: $MAP1_PID)"
+echo -e "  Map Server 2:      ENet Port 4002 (PID: $MAP2_PID)"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
 echo -e "  All logs: $LOGS_DIR"
 echo -e "  tail -f logs/auth.log"
 echo -e "  tail -f logs/world.log"
 echo -e "  tail -f logs/gateway.log"
-echo -e "  tail -f logs/map_server.log"
+echo -e "  tail -f logs/map_server_1.log"
+echo -e "  tail -f logs/map_server_2.log"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to view stop instructions${NC}"
 echo ""
@@ -113,7 +123,8 @@ echo ""
 echo "$AUTH_PID" > "$LOGS_DIR/.pids"
 echo "$WORLD_PID" >> "$LOGS_DIR/.pids"
 echo "$GATEWAY_PID" >> "$LOGS_DIR/.pids"
-echo "$MAP_PID" >> "$LOGS_DIR/.pids"
+echo "$MAP1_PID" >> "$LOGS_DIR/.pids"
+echo "$MAP2_PID" >> "$LOGS_DIR/.pids"
 
 # Wait for Ctrl+C
 trap ctrl_c INT

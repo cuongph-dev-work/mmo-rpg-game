@@ -9,6 +9,7 @@ signal gateway_disconnected()
 signal enter_world_success(data: Dictionary)
 signal gateway_error(error: Dictionary)
 signal session_replaced(message: String)
+signal map_transfer_success(data: Dictionary)
 
 # WebSocket
 var ws: WebSocketPeer = null
@@ -153,6 +154,7 @@ func _handle_event(event: String, payload: Dictionary) -> void:
 		
 		"join_map_success":
 			print("[GatewayClient] ✅ Join map success: %s" % payload)
+			map_transfer_success.emit(payload)
 		
 		"error":
 			var error_code = payload.get("code", "UNKNOWN")

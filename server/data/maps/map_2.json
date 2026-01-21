@@ -4,5 +4,15 @@
 	"max_channels": 5,
 	"max_players_per_channel": 30,
 	"scene_path": "res://scenes/maps/dragons_lair.tscn",
-	"description": "A dangerous dungeon filled with dragons and treasures"
+	"description": "A dangerous dungeon filled with dragons and treasures",
+	"mob_spawns": [],
+	"gates": [
+		{
+			"gate_id": 201,
+			"size": [
+				250,
+				250
+			]
+		}
+	]
 }

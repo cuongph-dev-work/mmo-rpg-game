@@ -15,6 +15,7 @@ var mob_spawner: MobSpawnerSystem
 var replication_system: ReplicationSystem
 var combat_system: CombatSystem
 var loot_system: LootSystem
+var gate_system: GateSystem
 
 # Data
 var map_id: int
@@ -57,6 +58,7 @@ func _async_setup():
 	_setup_mob_spawner()
 	_setup_combat_system()
 	_setup_loot_system()
+	_setup_gate_system()
 	
 	# 5. Start Server
 	if network_manager.start_server() == OK:
@@ -260,6 +262,12 @@ func _setup_loot_system():
 	loot_system = LootSystem.new()
 	loot_system.setup()
 	add_child(loot_system)
+
+func _setup_gate_system():
+	gate_system = GateSystem.new()
+	gate_system.setup(map_instance, entity_manager.entity_container, self)
+	add_child(gate_system)
+
 
 # ============================================================
 # EVENT HANDLERS

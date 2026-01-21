@@ -28,6 +28,7 @@ static func load_map_config(map_id: int) -> MapConfig:
 	config.scene_path = data.get("scene_path", "")
 	config.description = data.get("description", "")
 	config.mob_spawns = data.get("mob_spawns", [])
+	config.gates = data.get("gates", [])
 	
 	return config
 

@@ -4,6 +4,7 @@ extends Node2D
 ## Main game world container
 
 @onready var entity_container: Node2D = $EntityContainer
+@onready var position_label: Label = $UI/PositionLabel
 
 var spawn_position: Vector2 = Vector2(400, 300)
 var player_scene = preload("res://entities/player/Player.tscn")
@@ -22,6 +23,9 @@ func _ready():
 	
 	# Gateway session events
 	GatewayClient.session_replaced.connect(_on_session_replaced)
+	
+	# GameState position updates
+	PlayerState.position_changed.connect(_on_position_changed)
 	
 	# UI Setup
 	var channel_selector = $UI/ChannelSelector
@@ -101,6 +105,11 @@ func _on_spawn_position_set(pos: Vector2):
 	spawn_position = pos
 	print("[World] Spawn position set to: %s" % spawn_position)
 
+func _on_position_changed(pos: Vector2):
+	if position_label:
+		position_label.text = "Position: (%.0f, %.0f)" % [pos.x, pos.y]
+
+
 func _spawn_player(id: int):
 	if entity_container.has_node(str(id)):
 		return
@@ -154,6 +163,59 @@ func despawn_mob(id: int):
 		node.queue_free()
 		Bus.mob_despawned.emit(str(id))
 		print("[World] Mob despawned: %d" % id)
+
+# ============================================================
+# GATE SYSTEM - MAP TRANSFER
+# ============================================================
+
+@rpc("authority", "call_remote", "reliable")
+func on_map_transfer_requested(target_map_id: int, target_spawn_pos: Array):
+	"""Handle server request to transfer to another map"""
+	print("[World] 🚀 Map transfer requested to Map %d at %s" % [target_map_id, target_spawn_pos])
+	
+	# Store target spawn position
+	var spawn_pos = Vector2(target_spawn_pos[0], target_spawn_pos[1])
+	
+	# Disconnect from current map server
+	print("[World] Disconnecting from current map server...")
+	Net.disconnect_from_server()
+	
+	# Request new map server from Gateway
+	print("[World] Requesting new map server for Map %d from Gateway..." % target_map_id)
+	GatewayClient.send_join_map(target_map_id)
+	
+	# Wait for Gateway response via signal
+	# The _on_map_transfer_success callback will handle reconnection
+	GatewayClient.map_transfer_success.connect(_on_map_transfer_success.bind(spawn_pos), CONNECT_ONE_SHOT)
+
+func _on_map_transfer_success(data: Dictionary, override_spawn_pos: Vector2):
+	"""Handle successful map transfer - connect to new map server"""
+	print("[World] ✅ Received new map server data: %s" % data)
+	
+	# Update AuthState with new map server data
+	AuthState.map_server_data = data
+	
+	# Override spawn position with gate's target position
+	if override_spawn_pos != Vector2.ZERO:
+		AuthState.map_server_data["spawn_pos"] = {
+			"x": override_spawn_pos.x,
+			"y": override_spawn_pos.y
+		}
+	
+	# Reload world scene to connect to new map
+	get_tree().reload_current_scene()
+
+@rpc("authority", "call_remote", "reliable")
+func on_dynamic_gate_spawned(pos: Array, duration_seconds: float):
+	"""Handle dynamic gate spawn notification for VFX"""
+	var position = Vector2(pos[0], pos[1])
+	print("[World] 🌀 Dynamic gate spawned at %s (duration: %.0fs)" % [position, duration_seconds])
+	
+	# TODO: Spawn visual effect for dynamic gate
+	# var gate_vfx = gate_vfx_scene.instantiate()
+	# gate_vfx.position = position
+	# entity_container.add_child(gate_vfx)
+
 
 @rpc("authority", "call_remote", "reliable")
 func spawn_player(id: int, pos: Vector2):

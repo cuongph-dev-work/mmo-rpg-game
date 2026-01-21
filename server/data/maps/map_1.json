@@ -34,5 +34,14 @@
 			"respawn_time": 10.0,
 			"elite_chance": 0.2
 		}
+	],
+	"gates": [
+		{
+			"gate_id": 101,
+			"size": [
+				250,
+				250
+			]
+		}
 	]
 }

@@ -32,7 +32,10 @@ func _physics_process(delta):
 			velocity = input_vector.normalized() * speed
 			move_and_slide()
 		
-		# 3. Reconciliation (Check against Server Truth)
+		# 3. Update GameState with current position
+		PlayerState.update_position(position)
+		
+		# 4. Reconciliation (Check against Server Truth)
 		# Only correct if error is too large
 		if position.distance_squared_to(server_sync_position) > 2500: # 50^2 pixels
 			position = server_sync_position

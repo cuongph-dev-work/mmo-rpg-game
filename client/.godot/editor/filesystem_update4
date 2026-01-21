@@ -1,3 +1,7 @@
 res://scenes/login/Login.tscn
-res://scenes/character_select/CharacterSelect.gd
+res://entities/player/Player.tscn
+res://entities/player/Player.gd
+res://scenes/world/World.tscn
 res://scenes/world/World.gd
+res://autoload/App.gd
+res://autoload/PlayerState.gd

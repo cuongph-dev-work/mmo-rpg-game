@@ -23,6 +23,7 @@ Net="*res://autoload/Net.gd"
 App="*res://autoload/App.gd"
 AuthState="*res://autoload/AuthState.gd"
 GatewayClient="*res://autoload/GatewayClient.gd"
+PlayerState="*res://autoload/PlayerState.gd"
 
 [display]
 

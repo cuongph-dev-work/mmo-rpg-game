@@ -1,0 +1,42 @@
+[
+    {
+        "id": 101,
+        "name": "Gate to Dragon's Lair",
+        "belong_map_id": 1,
+        "position": [
+            200,
+            200
+        ],
+        "target_map_id": 2,
+        "target_spawn_pos": [
+            150,
+            150
+        ],
+        "required_level": 1,
+        "size": [
+            50,
+            50
+        ],
+        "type": "portal_blue"
+    },
+    {
+        "id": 201,
+        "name": "Gate back to Village",
+        "belong_map_id": 2,
+        "position": [
+            100,
+            100
+        ],
+        "target_map_id": 1,
+        "target_spawn_pos": [
+            250,
+            250
+        ],
+        "required_level": 1,
+        "size": [
+            50,
+            50
+        ],
+        "type": "portal_green"
+    }
+]

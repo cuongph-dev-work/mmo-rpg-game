@@ -21,6 +21,15 @@ func spawn_player(id: int, pos: Vector2):
 func despawn_player(id: int):
 	pass
 
+# Gate System RPCs
+@rpc("authority", "call_remote", "reliable")
+func on_map_transfer_requested(target_map_id: int, target_spawn_pos: Array):
+	pass
+
+@rpc("authority", "call_remote", "reliable")
+func on_dynamic_gate_spawned(pos: Array, duration_seconds: float):
+	pass
+
 @rpc("any_peer", "call_remote", "reliable")
 func request_channel_change(target_channel_id: int):
 	var player_id = multiplayer.get_remote_sender_id()

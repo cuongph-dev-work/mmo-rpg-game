@@ -8,3 +8,4 @@ extends Resource
 @export var scene_path: String
 @export var description: String = ""
 @export var mob_spawns: Array = []
+@export var gates: Array = [] # Gate references [{ gate_id, size? }]

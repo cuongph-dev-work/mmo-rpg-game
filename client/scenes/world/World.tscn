@@ -28,3 +28,10 @@ popup/item_1/text = "Channel 2"
 popup/item_1/id = 2
 popup/item_2/text = "Channel 3"
 popup/item_2/id = 3
+
+[node name="PositionLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 60.0
+offset_right = 200.0
+offset_bottom = 90.0
+text = "Position: (0, 0)"
